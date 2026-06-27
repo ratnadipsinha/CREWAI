@@ -211,3 +211,8 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-si
 .tool-pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--panel-2); }
 .tool-pill.ok { color: #22c55e; border-color: #14532d; }
 .tool-pill.missing { color: #f59e0b; border-color: #78350f; }
+
+/* top-bar live-run backend indicator */
+.backend-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+  color: var(--muted); padding: 0 6px; cursor: default; user-select: none; }
+.backend-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 6px currentColor; }

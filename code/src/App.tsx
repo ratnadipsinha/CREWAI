@@ -30,6 +30,7 @@ import { RunPanel } from "./components/RunPanel";
 import { ScheduleModal } from "./components/ScheduleModal";
 import { SettingsModal } from "./components/SettingsModal";
 import { DEFAULT_SCHEDULE, humanSummary, ScheduleConfig } from "./schedule";
+import { BackendStatus } from "./components/BackendStatus";
 
 let counter = 1; // clean canvas: numbering starts at 1.0
 
@@ -379,6 +380,7 @@ export default function App() {
       <header className="topbar">
         <div className="brand">Visual Agent Builder</div>
         <div className="spacer" />
+        <BackendStatus backendUrl={settings.backendUrl} />
         <button onClick={() => setSettingsOpen(true)} title="LLM settings (engine, API key)">
           ⚙ {settings.provider === "template" ? "Template" : settings.model || settings.provider}
         </button>
