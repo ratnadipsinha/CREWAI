@@ -53,6 +53,33 @@ CrewAI needs a model to reason. Set `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL`
 in `.env` (any OpenAI-compatible provider; e.g. Groq's free tier), or let the
 frontend's LLM settings drive it — they're sent with each run.
 
+## Deploy (so the real run works from the hosted site)
+
+Netlify hosts the frontend but can't run this Python process, so deploy the
+backend to a container host. A Render blueprint (`render.yaml`) and `Dockerfile`
+are included.
+
+**Render (one-click-ish):**
+1. Render → **New → Blueprint** → pick this repo → it reads `render.yaml`.
+2. Set the secret env vars in the dashboard:
+   - `LLM_API_KEY` — your LLM key (e.g. Groq free tier).
+   - `FRONTEND_ORIGIN` — your Netlify URL (e.g. `https://your-site.netlify.app`),
+     or `*` to allow any origin.
+   - `OUTLOOK_USER` — optional; the browser modal usually supplies it.
+3. Deploy → you get an HTTPS URL like `https://crewai-live-run.onrender.com`.
+4. In the app: **⚙ Settings → Live-run backend URL** → paste that URL → **Run**.
+
+**Any other container host (Railway / Fly / Docker):**
+```bash
+cd code/backend
+docker build -t crewai-live-run .
+docker run -p 8000:8000 --env-file .env crewai-live-run
+```
+
+> The hosted backend must be **HTTPS** — the Netlify site is HTTPS, so a plain
+> `http://` backend (other than `localhost`) is blocked as mixed content. Render
+> and Fly give you HTTPS automatically.
+
 ## Notes / limits
 
 - Each task runs as its own single-task crew with prior outputs injected as

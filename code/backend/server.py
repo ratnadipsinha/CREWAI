@@ -27,9 +27,13 @@ load_dotenv()
 
 app = FastAPI(title="Visual Agent Builder — live run backend")
 
+# FRONTEND_ORIGIN may be a comma-separated list, or "*" to allow any origin.
+_origins_env = os.environ.get("FRONTEND_ORIGIN", "http://localhost:3000").strip()
+_origins = ["*"] if _origins_env == "*" else [o.strip() for o in _origins_env.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.environ.get("FRONTEND_ORIGIN", "http://localhost:3000")],
+    allow_origins=_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -87,4 +91,6 @@ async def run(req: Request):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    # Hosts (Render/Railway/Fly) inject PORT; bind all interfaces in a container.
+    port = int(os.environ.get("PORT", "8000"))
+    uvicorn.run(app, host="0.0.0.0", port=port)

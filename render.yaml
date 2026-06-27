@@ -1,0 +1,28 @@
+# Render blueprint for the live-run backend (real CrewAI execution).
+# In Render: New → Blueprint → pick this repo. It builds code/backend/Dockerfile
+# and gives you an HTTPS URL. Set the secret env vars (marked sync:false) in the
+# dashboard, then point the app's Settings → "Live-run backend URL" at the URL.
+services:
+  - type: web
+    name: crewai-live-run
+    runtime: docker
+    rootDir: code/backend
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      # Allow the deployed frontend (and local dev) to call this backend.
+      # Use a comma-separated list, or "*" to allow any origin.
+      - key: FRONTEND_ORIGIN
+        sync: false
+      # LLM the CrewAI agents reason with (any OpenAI-compatible provider).
+      - key: LLM_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: LLM_MODEL
+        value: groq/llama-3.3-70b-versatile
+      - key: LLM_API_KEY
+        sync: false
+      # Optional server-side fallback for the Outlook mailbox; the browser
+      # modals normally supply tool credentials per run.
+      - key: OUTLOOK_USER
+        sync: false
