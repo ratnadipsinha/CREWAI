@@ -40,12 +40,20 @@ function newId(): string {
 const EMPTY_FLOW: FlowState = { nodes: [], edges: [] };
 
 const SETTINGS_KEY = "vab_settings";
+// Build-time default backend URL (set VITE_BACKEND_URL in Netlify). Lets the
+// deployed site reach the live-run backend without anyone editing Settings.
+const ENV_BACKEND_URL = (import.meta.env.VITE_BACKEND_URL ?? "").trim();
+
 function loadSettings(): VibeSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : DEFAULT_SETTINGS;
+    const saved: VibeSettings = raw
+      ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
+      : DEFAULT_SETTINGS;
+    // Prefer a saved backend URL; otherwise fall back to the build-time default.
+    return { ...saved, backendUrl: saved.backendUrl || ENV_BACKEND_URL };
   } catch {
-    return DEFAULT_SETTINGS;
+    return { ...DEFAULT_SETTINGS, backendUrl: ENV_BACKEND_URL };
   }
 }
 

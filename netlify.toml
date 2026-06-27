@@ -1,6 +1,10 @@
 # Netlify build + serverless LLM proxy.
 # Connect this repo in Netlify, set env vars LLM_API_KEY (and optionally
 # LLM_UPSTREAM), and every push to main deploys with a live link.
+#
+# To make the hosted site use the real-run backend by default, also set
+# VITE_BACKEND_URL (e.g. https://crewai-live-run.onrender.com) in Netlify env —
+# it's baked into the build so users don't have to paste it into Settings.
 
 [build]
   base = "code"
