@@ -1,0 +1,19 @@
+# Netlify build + serverless LLM proxy.
+# Connect this repo in Netlify, set env vars LLM_API_KEY (and optionally
+# LLM_UPSTREAM), and every push to main deploys with a live link.
+
+[build]
+  base = "code"
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Browser calls /llm/* (same origin) -> serverless function -> upstream LLM API.
+# Keeps the API key server-side; no CORS.
+[[redirects]]
+  from = "/llm/*"
+  to = "/.netlify/functions/llm/:splat"
+  status = 200
