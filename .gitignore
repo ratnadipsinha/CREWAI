@@ -4,3 +4,8 @@ code/.env.local
 code/*.local
 code/tsconfig.tsbuildinfo
 .DS_Store
+
+# Python backend
+code/backend/__pycache__/
+code/backend/.venv/
+code/backend/.env

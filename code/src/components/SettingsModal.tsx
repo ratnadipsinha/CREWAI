@@ -105,6 +105,20 @@ export function SettingsModal({
           />
         </label>
 
+        <label className="field">
+          <span>Live-run backend URL (optional)</span>
+          <input
+            value={s.backendUrl}
+            placeholder="http://localhost:8000  (empty = in-browser dry run)"
+            onChange={(e) => setS({ ...s, backendUrl: e.target.value })}
+          />
+        </label>
+        <p className="muted small">
+          Set this to the Python backend (see <code>backend/</code>) to make{" "}
+          <b>Run</b> a real run — actual CrewAI agents and tools (Outlook, Jira,
+          HubSpot…), with credentials sent only at run time.
+        </p>
+
         <div className="modal-actions">
           <button className="ghost" onClick={runTest} disabled={testing || s.provider === "template"}>
             {testing ? "Testing…" : "Test connection"}

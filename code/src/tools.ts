@@ -47,6 +47,7 @@ export const TOOLS: Record<string, ToolDef> = {
       { name: "OUTLOOK_CLIENT_ID", label: "Client ID", secret: false },
       { name: "OUTLOOK_TENANT_ID", label: "Tenant ID", secret: false },
       { name: "OUTLOOK_CLIENT_SECRET", label: "Client Secret", secret: true },
+      { name: "OUTLOOK_USER", label: "Mailbox to read (e.g. ops@contoso.com)", secret: false },
     ],
     pyImport: "from crewai_tools import MCPServerAdapter  # Outlook via MCP",
     pyVar: "outlook_tool",

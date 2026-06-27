@@ -482,6 +482,7 @@ export default function App() {
         <RunPanel
           state={state}
           settings={settings}
+          creds={creds}
           onClose={() => setRunning(false)}
         />
       )}
