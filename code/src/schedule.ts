@@ -188,6 +188,48 @@ function onCalendar(cfg: ScheduleConfig): string {
   }
 }
 
+// Double-click installer that registers the task in Windows Task Scheduler.
+// Self-resolving: %~dp0 is the project folder, so paths just work after unzip.
+export function windowsInstaller(cfg: ScheduleConfig, projectName?: string): string {
+  const name = taskName(projectName);
+  let sched: string;
+  if (cfg.mode === "interval") sched = `/sc minute /mo ${Math.max(1, Math.floor(cfg.everyMinutes))}`;
+  else if (cfg.mode === "hourly") sched = "/sc hourly";
+  else if (cfg.mode === "daily") sched = `/sc daily /st ${cfg.time}`;
+  else sched = "/sc daily /st 08:00"; // schtasks has no raw-cron mode
+  return [
+    "@echo off",
+    "REM Registers this crew in Windows Task Scheduler. Right-click > Run as administrator.",
+    "setlocal",
+    `set TASKNAME=${name}`,
+    "set DIR=%~dp0",
+    'where python >nul 2>nul && (set PY=python) || (set PY=py)',
+    `schtasks /create /tn "%TASKNAME%" /tr "cmd /c cd /d \\"%DIR%\\" && %PY% main.py >> \\"%DIR%crew.log\\" 2>&1" ${sched} /f`,
+    "echo.",
+    "echo Created scheduled task: %TASKNAME%",
+    "echo Remove later with:  schtasks /delete /tn \"%TASKNAME%\" /f",
+    "pause",
+  ].join("\r\n");
+}
+
+// Installer for cron (Linux/macOS). Bakes the absolute project path at install.
+export function cronInstaller(cfg: ScheduleConfig, projectName?: string): string {
+  const name = taskName(projectName);
+  const cron = toCron(cfg);
+  return [
+    "#!/usr/bin/env bash",
+    "# Installs this crew as a cron job. Run:  bash install_schedule.sh",
+    "set -e",
+    'DIR="$(cd "$(dirname "$0")" && pwd)"',
+    `PY="$(command -v python3 || command -v python)"`,
+    `LINE="${cron} cd $DIR && $PY main.py >> $DIR/crew.log 2>&1 # ${name}"`,
+    `( crontab -l 2>/dev/null | grep -v '# ${name}$' ; echo "$LINE" ) | crontab -`,
+    `echo "Installed cron job: ${name}"`,
+    `echo "Remove later with:  crontab -l | grep -v '# ${name}$' | crontab -"`,
+    "",
+  ].join("\n");
+}
+
 export function scheduleMarkdown(cfg: ScheduleConfig, projectName?: string): string {
   const a = scheduleArtifacts(cfg, projectName);
   const unit = taskName(projectName).toLowerCase(); // e.g. agent-billing-bot
@@ -198,6 +240,13 @@ export function scheduleMarkdown(cfg: ScheduleConfig, projectName?: string): str
     `Job name: **${taskName(projectName)}**`,
     `Run cadence: **${a.summary}**`,
     `Cron expression: \`${a.cron}\``,
+    "",
+    "## Easiest: run the included installer",
+    "- **Windows:** right-click **`register_task.bat`** → **Run as administrator**.",
+    "  It registers the task in Task Scheduler (paths resolve automatically).",
+    "- **Linux / macOS:** `bash install_schedule.sh` (adds the cron job).",
+    "",
+    "Or use the platform-specific commands below.",
     "",
     "## Windows (Task Scheduler)",
     "```",

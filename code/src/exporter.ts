@@ -4,7 +4,12 @@
 import JSZip from "jszip";
 import { FlowState } from "./types";
 import { genProjectFiles } from "./codegen";
-import { ScheduleConfig, scheduleMarkdown } from "./schedule";
+import {
+  ScheduleConfig,
+  scheduleMarkdown,
+  windowsInstaller,
+  cronInstaller,
+} from "./schedule";
 
 const README = `# Exported CrewAI project
 
@@ -26,7 +31,12 @@ export async function exportProject(
   const files = genProjectFiles(state);
   Object.entries(files).forEach(([name, content]) => zip.file(name, content));
   zip.file("README.md", README);
-  if (schedule) zip.file("SCHEDULE.md", scheduleMarkdown(schedule, projectName));
+  if (schedule) {
+    zip.file("SCHEDULE.md", scheduleMarkdown(schedule, projectName));
+    // Double-click / one-command installers that register the OS-level task.
+    zip.file("register_task.bat", windowsInstaller(schedule, projectName));
+    zip.file("install_schedule.sh", cronInstaller(schedule, projectName));
+  }
 
   const slug = (projectName || "crewai_project")
     .toLowerCase()
