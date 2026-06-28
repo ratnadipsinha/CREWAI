@@ -22,6 +22,16 @@ function base(settings: VibeSettings): string {
   return settings.backendUrl.replace(/\/$/, "");
 }
 
+// Shared token (only needed if the backend enforces BACKEND_TOKEN). Empty = none.
+const BACKEND_TOKEN = (import.meta.env.VITE_BACKEND_TOKEN ?? "").trim();
+
+// Headers for backend calls: JSON + the auth token when configured.
+export function backendHeaders(): Record<string, string> {
+  const h: Record<string, string> = { "Content-Type": "application/json" };
+  if (BACKEND_TOKEN) h["X-API-Token"] = BACKEND_TOKEN;
+  return h;
+}
+
 export async function approveGate(
   settings: VibeSettings,
   runId: string,
@@ -30,7 +40,7 @@ export async function approveGate(
 ): Promise<void> {
   await fetch(`${base(settings)}/approve`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: backendHeaders(),
     body: JSON.stringify({ run_id: runId, node_id: nodeId, approved }),
   });
 }
@@ -54,7 +64,7 @@ export async function scheduleRun(
 ): Promise<ScheduleRecord> {
   const res = await fetch(`${base(settings)}/schedule`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: backendHeaders(),
     body: JSON.stringify({
       flow: state,
       credentials: creds,
@@ -82,7 +92,7 @@ export async function streamRun(
 ): Promise<void> {
   const res = await fetch(`${base(settings)}/run`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: backendHeaders(),
     signal,
     body: JSON.stringify({
       flow: state,

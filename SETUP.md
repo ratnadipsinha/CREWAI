@@ -57,9 +57,23 @@ python server.py       # http://localhost:8000
 
 - ✅ No keys are committed; `.env.local` and `backend/.env` are gitignored.
 - ✅ `code/.env` holds only public config (no real backend URL).
-- ⚠️ The backend has **no auth** and `FRONTEND_ORIGIN=*` is open — anyone with the
-  URL can spend your LLM quota. For shared/public use, add a token, restrict CORS,
-  and set a spend cap on your LLM key.
+- ⚠️ By default the backend is **open** (`FRONTEND_ORIGIN=*`). To lock it down,
+  enable the optional shared-token auth (below), restrict CORS to your origin, and
+  set a spend cap on your LLM key.
+
+### Optional: shared-token auth (lock the backend to your frontend)
+
+Backward-compatible — enforced **only** when both sides are set; `/health` and
+`/version` stay open.
+
+1. **Render** → set env var `BACKEND_TOKEN` = a long random string.
+2. **GitHub** → Settings → Secrets and variables → Actions → **Variables** →
+   `VITE_BACKEND_TOKEN` = the same string. Re-run the Pages workflow.
+
+Now every `/run`, `/test-tool`, `/schedule`, `/approve` request must carry the
+matching `X-API-Token` header, which only your built frontend sends. Roll it out
+in this order (no downtime): deploy backend first (token unset = open), then set
+both values together.
 
 ## Tool notes
 

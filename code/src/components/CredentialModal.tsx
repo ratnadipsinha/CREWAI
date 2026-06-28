@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CredStore } from "../credentials";
 import { TOOLS } from "../tools";
+import { backendHeaders } from "../backendRun";
 
 // Prompted on the fly the instant a tool is attached to an agent. Asks only for
 // that tool's fields. Values go to the in-memory CredStore, never the FlowState.
@@ -37,7 +38,7 @@ export function CredentialModal({
     try {
       const res = await fetch(`${base}/test-tool`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: backendHeaders(),
         body: JSON.stringify({ toolKey, credentials: values }),
       });
       const data = await res.json();

@@ -17,13 +17,22 @@ import os
 import uuid
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Header, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 
 load_dotenv()
 
 app = FastAPI(title="Visual Agent Builder — live run backend")
+
+
+# Optional shared-token auth. Enforced ONLY when BACKEND_TOKEN is set on the
+# server — unset means fully open (unchanged behavior). /health and /version stay
+# open so the status pill works without a token.
+def require_token(x_api_token: str = Header(default="")):
+    expected = os.environ.get("BACKEND_TOKEN", "").strip()
+    if expected and x_api_token != expected:
+        raise HTTPException(status_code=401, detail="invalid or missing API token")
 
 # FRONTEND_ORIGIN may be a comma-separated list, or "*" to allow any origin.
 _origins_env = os.environ.get("FRONTEND_ORIGIN", "http://localhost:3000").strip()
@@ -55,7 +64,7 @@ def version():
 
 
 @app.get("/tools")
-def tools_catalog():
+def tools_catalog(_=Depends(require_token)):
     # Single source of truth for tool auth + fields, so the frontend can render
     # connector modals without duplicating the schema.
     from tool_schema import TOOL_SCHEMA
@@ -64,7 +73,7 @@ def tools_catalog():
 
 
 @app.post("/schedule")
-async def schedule(req: Request):
+async def schedule(req: Request, _=Depends(require_token)):
     body = await req.json()
     import scheduler  # lazy (pulls crewai)
 
@@ -77,21 +86,21 @@ async def schedule(req: Request):
 
 
 @app.get("/schedules")
-def schedules():
+def schedules(_=Depends(require_token)):
     import scheduler
 
     return scheduler.listing()
 
 
 @app.delete("/schedule/{job_id}")
-def unschedule(job_id: str):
+def unschedule(job_id: str, _=Depends(require_token)):
     import scheduler
 
     return {"removed": scheduler.remove(job_id)}
 
 
 @app.post("/test-tool")
-async def test_tool(req: Request):
+async def test_tool(req: Request, _=Depends(require_token)):
     body = await req.json()
     import tool_test  # light import (no crewai)
 
@@ -99,7 +108,7 @@ async def test_tool(req: Request):
 
 
 @app.post("/approve")
-async def approve(req: Request):
+async def approve(req: Request, _=Depends(require_token)):
     body = await req.json()
     run_id = body.get("run_id", "")
     node_id = body.get("node_id", "")
@@ -112,7 +121,7 @@ async def approve(req: Request):
 
 
 @app.post("/run")
-async def run(req: Request):
+async def run(req: Request, _=Depends(require_token)):
     payload = await req.json()
     run_id = uuid.uuid4().hex[:12]
     loop = asyncio.get_running_loop()
