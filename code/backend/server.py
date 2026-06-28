@@ -21,8 +21,6 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 
-import crew_runner
-
 load_dotenv()
 
 app = FastAPI(title="Visual Agent Builder — live run backend")
@@ -74,6 +72,10 @@ async def run(req: Request):
             return await fut
         finally:
             _pending[run_id].pop(node_id, None)
+
+    # Imported lazily so the server (and /health) boot without the heavy crewai
+    # import — only a real run pays that cost.
+    import crew_runner
 
     async def stream():
         yield json.dumps({"type": "run", "run_id": run_id}) + "\n"
