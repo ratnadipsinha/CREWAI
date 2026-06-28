@@ -43,20 +43,18 @@ def get_token(creds: dict) -> str:
     return token
 
 
-def read_inbox(creds: dict, top: int = 5, query: str | None = None) -> list[dict]:
-    """Read the latest messages from OUTLOOK_USER's inbox."""
-    user = cred(creds, "OUTLOOK_USER", required=True)
+def _fetch(creds: dict, user: str, top: int, query: str | None) -> list[dict]:
     params = {
         "$top": str(max(1, min(top, 25))),
         "$select": "subject,from,receivedDateTime,bodyPreview,hasAttachments",
-        "$orderby": "receivedDateTime desc",
     }
     headers = {"Authorization": f"Bearer {get_token(creds)}"}
-    # $search and $orderby can't be combined; drop ordering when searching.
     if query:
-        params.pop("$orderby", None)
+        # $search can't be combined with $orderby; results come ranked.
         params["$search"] = f'"{query}"'
         headers["ConsistencyLevel"] = "eventual"
+    else:
+        params["$orderby"] = "receivedDateTime desc"
     resp = requests.get(
         f"{_GRAPH}/users/{user}/mailFolders/Inbox/messages",
         headers=headers,
@@ -77,3 +75,19 @@ def read_inbox(creds: dict, top: int = 5, query: str | None = None) -> list[dict
             }
         )
     return out
+
+
+def read_inbox(creds: dict, top: int = 5, query: str | None = None) -> list[dict]:
+    """Read messages from OUTLOOK_USER's inbox. A search `query` is best-effort:
+    if it matches nothing (agents often pass natural-language terms that Graph's
+    $search can't match), fall back to the most recent messages so real mail is
+    never silently hidden."""
+    user = cred(creds, "OUTLOOK_USER", required=True)
+    if query:
+        try:
+            hits = _fetch(creds, user, top, query)
+            if hits:
+                return hits
+        except Exception:
+            pass  # fall through to recent
+    return _fetch(creds, user, top, None)
