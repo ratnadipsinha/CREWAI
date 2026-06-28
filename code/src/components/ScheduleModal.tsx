@@ -3,6 +3,7 @@ import {
   ScheduleConfig,
   ScheduleMode,
   scheduleArtifacts,
+  taskName,
 } from "../schedule";
 
 const MODES: { key: ScheduleMode; label: string }[] = [
@@ -25,12 +26,14 @@ const OS_OPTIONS: { key: OsKey; label: string }[] = [
 // The saved config ships in the exported project's SCHEDULE.md.
 export function ScheduleModal({
   initial,
+  projectName,
   canScheduleLive,
   onSave,
   onScheduleLive,
   onCancel,
 }: {
   initial: ScheduleConfig;
+  projectName?: string;
   canScheduleLive?: boolean; // backend set + canvas not empty
   onSave: (cfg: ScheduleConfig) => void;
   onScheduleLive?: (cfg: ScheduleConfig) => Promise<{ next_run: string | null }>;
@@ -40,7 +43,7 @@ export function ScheduleModal({
   const [os, setOs] = useState<OsKey>("windows");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const art = scheduleArtifacts(cfg);
+  const art = scheduleArtifacts(cfg, projectName);
 
   async function scheduleLive() {
     if (!onScheduleLive) return;
@@ -68,6 +71,9 @@ export function ScheduleModal({
     <div className="overlay" onClick={onCancel}>
       <div className="modal sched" onClick={(e) => e.stopPropagation()}>
         <h3>Schedule the crew</h3>
+        <p className="muted small">
+          OS scheduler job name: <code>{taskName(projectName)}</code>
+        </p>
 
         <div className="seg">
           {MODES.map((m) => (

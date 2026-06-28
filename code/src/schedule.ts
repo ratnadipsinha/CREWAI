@@ -60,26 +60,41 @@ export interface ScheduleArtifacts {
   k8s: string;
 }
 
-export function scheduleArtifacts(cfg: ScheduleConfig): ScheduleArtifacts {
-  const cron = toCron(cfg);
+// Scheduled jobs are named "Agent-<project name>" in every OS scheduler.
+export function taskName(projectName?: string): string {
+  const slug =
+    (projectName || "crew")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "crew";
+  return `Agent-${slug}`;
+}
 
-  // Windows Task Scheduler
+export function scheduleArtifacts(
+  cfg: ScheduleConfig,
+  projectName?: string,
+): ScheduleArtifacts {
+  const cron = toCron(cfg);
+  const name = taskName(projectName); // e.g. "Agent-billing-bot"
+  const unit = name.toLowerCase(); // systemd/k8s want lowercase
+
+  // Windows Task Scheduler — task appears as "Agent-<project>"
   let windows: string;
   if (cfg.mode === "interval") {
-    windows = `schtasks /create /tn "CrewRun" /tr "python C:\\path\\to\\main.py" /sc minute /mo ${cfg.everyMinutes}`;
+    windows = `schtasks /create /tn "${name}" /tr "python C:\\path\\to\\main.py" /sc minute /mo ${cfg.everyMinutes}`;
   } else if (cfg.mode === "hourly") {
-    windows = `schtasks /create /tn "CrewRun" /tr "python C:\\path\\to\\main.py" /sc hourly`;
+    windows = `schtasks /create /tn "${name}" /tr "python C:\\path\\to\\main.py" /sc hourly`;
   } else if (cfg.mode === "daily") {
-    windows = `schtasks /create /tn "CrewRun" /tr "python C:\\path\\to\\main.py" /sc daily /st ${cfg.time}`;
+    windows = `schtasks /create /tn "${name}" /tr "python C:\\path\\to\\main.py" /sc daily /st ${cfg.time}`;
   } else {
-    windows = `# Custom cron isn't directly supported by schtasks.\n# Use daily/minute flags, or run via WSL cron.`;
+    windows = `# Custom cron isn't directly supported by schtasks.\n# Use daily/minute flags, or run via WSL cron.\n# (task name: ${name})`;
   }
 
-  const linuxCron = `${cron} cd /path/to/crew && /usr/bin/python3 main.py >> /var/log/crew.log 2>&1`;
+  const linuxCron = `${cron} cd /path/to/crew && /usr/bin/python3 main.py >> /var/log/${unit}.log 2>&1  # ${name}`;
 
   const systemdService = [
     "[Unit]",
-    "Description=CrewAI Runner",
+    `Description=${name} (CrewAI Runner)`,
     "",
     "[Service]",
     "Type=oneshot",
@@ -89,7 +104,7 @@ export function scheduleArtifacts(cfg: ScheduleConfig): ScheduleArtifacts {
 
   const systemdTimer = [
     "[Unit]",
-    "Description=Run crew on schedule",
+    `Description=${name} schedule`,
     "",
     "[Timer]",
     `OnCalendar=${onCalendar(cfg)}`,
@@ -103,7 +118,7 @@ export function scheduleArtifacts(cfg: ScheduleConfig): ScheduleArtifacts {
     "apiVersion: batch/v1",
     "kind: CronJob",
     "metadata:",
-    "  name: crew-runner",
+    `  name: ${unit}`,
     "spec:",
     `  schedule: "${cron}"`,
     "  jobTemplate:",
@@ -112,7 +127,7 @@ export function scheduleArtifacts(cfg: ScheduleConfig): ScheduleArtifacts {
     "        spec:",
     "          restartPolicy: OnFailure",
     "          containers:",
-    "            - name: crew",
+    `            - name: ${unit}`,
     "              image: your-registry/crew:latest",
     '              command: ["python", "main.py"]',
   ].join("\n");
@@ -124,12 +139,13 @@ export function scheduleArtifacts(cfg: ScheduleConfig): ScheduleArtifacts {
     linuxCron,
     systemdService,
     systemdTimer,
-    macosLaunchd: macosPlist(cfg),
+    macosLaunchd: macosPlist(cfg, name),
     k8s,
   };
 }
 
-function macosPlist(cfg: ScheduleConfig): string {
+function macosPlist(cfg: ScheduleConfig, name = "Agent-crew"): string {
+  const label = "com." + name.toLowerCase().replace(/[^a-z0-9]+/g, ".");
   let when: string;
   if (cfg.mode === "interval") {
     when = `    <key>StartInterval</key>\n    <integer>${cfg.everyMinutes * 60}</integer>`;
@@ -148,12 +164,12 @@ function macosPlist(cfg: ScheduleConfig): string {
     '<plist version="1.0">',
     "  <dict>",
     "    <key>Label</key>",
-    "    <string>com.crew.runner</string>",
+    `    <string>${label}</string>`,
     "    <key>ProgramArguments</key>",
     "    <array><string>/usr/bin/python3</string><string>/path/to/crew/main.py</string></array>",
     when,
     "    <key>StandardOutPath</key>",
-    "    <string>/tmp/crew.log</string>",
+    `    <string>/tmp/${name.toLowerCase()}.log</string>`,
     "  </dict>",
     "</plist>",
   ].join("\n");
@@ -172,11 +188,14 @@ function onCalendar(cfg: ScheduleConfig): string {
   }
 }
 
-export function scheduleMarkdown(cfg: ScheduleConfig): string {
-  const a = scheduleArtifacts(cfg);
+export function scheduleMarkdown(cfg: ScheduleConfig, projectName?: string): string {
+  const a = scheduleArtifacts(cfg, projectName);
+  const unit = taskName(projectName).toLowerCase(); // e.g. agent-billing-bot
+  const label = "com." + taskName(projectName).toLowerCase().replace(/[^a-z0-9]+/g, ".");
   return [
     "# Schedule",
     "",
+    `Job name: **${taskName(projectName)}**`,
     `Run cadence: **${a.summary}**`,
     `Cron expression: \`${a.cron}\``,
     "",
@@ -192,22 +211,22 @@ export function scheduleMarkdown(cfg: ScheduleConfig): string {
     "```",
     "",
     "## Linux (systemd timer)",
-    "`/etc/systemd/system/crew-runner.service`:",
+    `\`/etc/systemd/system/${unit}.service\`:`,
     "```ini",
     a.systemdService,
     "```",
-    "`/etc/systemd/system/crew-runner.timer`:",
+    `\`/etc/systemd/system/${unit}.timer\`:`,
     "```ini",
     a.systemdTimer,
     "```",
-    "Enable: `systemctl enable --now crew-runner.timer`",
+    `Enable: \`systemctl enable --now ${unit}.timer\``,
     "",
     "## macOS (launchd)",
-    "`~/Library/LaunchAgents/com.crew.runner.plist`:",
+    `\`~/Library/LaunchAgents/${label}.plist\`:`,
     "```xml",
     a.macosLaunchd,
     "```",
-    "Load: `launchctl load ~/Library/LaunchAgents/com.crew.runner.plist`",
+    `Load: \`launchctl load ~/Library/LaunchAgents/${label}.plist\``,
     "",
     "## Kubernetes (CronJob)",
     "```yaml",

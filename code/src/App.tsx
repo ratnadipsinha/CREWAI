@@ -29,7 +29,7 @@ import { CredentialModal } from "./components/CredentialModal";
 import { RunPanel } from "./components/RunPanel";
 import { ScheduleModal } from "./components/ScheduleModal";
 import { SettingsModal } from "./components/SettingsModal";
-import { DEFAULT_SCHEDULE, humanSummary, ScheduleConfig, toCron } from "./schedule";
+import { DEFAULT_SCHEDULE, humanSummary, ScheduleConfig, taskName, toCron } from "./schedule";
 import { BackendStatus } from "./components/BackendStatus";
 import { scheduleRun } from "./backendRun";
 
@@ -86,6 +86,7 @@ export default function App() {
   const [creds, setCreds] = useState<CredStore>(loadCreds());
   const [settings, setSettings] = useState<VibeSettings>(loadSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [projectName, setProjectName] = useState("my-crew");
 
   function saveSettings(s: VibeSettings) {
     setSettings(s);
@@ -381,6 +382,13 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <div className="brand">Visual Agent Builder</div>
+        <input
+          className="project-name"
+          value={projectName}
+          onChange={(e) => setProjectName(e.target.value)}
+          title="Project name — used for the scheduled job name (Agent-<name>) and export"
+          placeholder="project name"
+        />
         <div className="spacer" />
         <BackendStatus backendUrl={settings.backendUrl} />
         <button onClick={() => setSettingsOpen(true)} title="LLM settings (engine, API key)">
@@ -401,7 +409,7 @@ export default function App() {
         </button>
         <button
           className="primary"
-          onClick={() => exportProject(state, schedule)}
+          onClick={() => exportProject(state, schedule, projectName)}
           disabled={state.nodes.length === 0}
         >
           ⬇ Export project
@@ -511,6 +519,7 @@ export default function App() {
       {scheduleOpen && (
         <ScheduleModal
           initial={schedule ?? DEFAULT_SCHEDULE}
+          projectName={projectName}
           canScheduleLive={!!settings.backendUrl.trim() && state.nodes.length > 0}
           onSave={(cfg) => {
             setSchedule(cfg);
@@ -523,7 +532,7 @@ export default function App() {
               state,
               creds,
               toCron(cfg),
-              humanSummary(cfg),
+              `${taskName(projectName)} — ${humanSummary(cfg)}`,
             );
             setScheduleOpen(false);
             return rec;
