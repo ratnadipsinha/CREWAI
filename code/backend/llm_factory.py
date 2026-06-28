@@ -7,6 +7,18 @@ import os
 
 from crewai import LLM
 
+# Let litellm strip/modify params a provider doesn't accept. CrewAI injects an
+# Anthropic-style prompt-cache breakpoint into the system message; Groq rejects
+# it ("property 'cache_breakpoint' is unsupported"). These flags make litellm
+# drop/adapt such fields instead of failing the request.
+try:  # pragma: no cover - best effort, litellm is always present in the image
+    import litellm
+
+    litellm.drop_params = True
+    litellm.modify_params = True
+except Exception:
+    pass
+
 
 def make_llm(settings: dict | None = None) -> LLM:
     """Build the agents' LLM.
