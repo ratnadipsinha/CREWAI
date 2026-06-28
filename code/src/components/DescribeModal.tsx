@@ -13,12 +13,14 @@ export type DescribeMode = "flow" | "block";
 export function DescribeModal({
   initialType,
   lockBlock,
+  vibe,
   busy,
   onGenerate,
   onCancel,
 }: {
   initialType: BlockType;
   lockBlock: boolean; // true when redescribing a node
+  vibe?: boolean; // launched from "Vibe your idea" — flow-only, no mode toggle
   busy: boolean;
   onGenerate: (mode: DescribeMode, type: BlockType, prompt: string) => void;
   onCancel: () => void;
@@ -53,9 +55,9 @@ export function DescribeModal({
   return (
     <div className="overlay" onClick={onCancel}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>Describe and generate</h3>
+        <h3>{vibe ? "🎙 Vibe your idea" : "Describe and generate"}</h3>
 
-        {!lockBlock && (
+        {!lockBlock && !vibe && (
           <div className="seg">
             <button
               className={`seg-btn ${mode === "flow" ? "active" : ""}`}

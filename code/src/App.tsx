@@ -97,6 +97,7 @@ export default function App() {
     open: boolean;
     type: BlockType;
     targetId: string | null; // when redescribing an existing node
+    vibe?: boolean; // launched from the "Vibe your idea" button (flow-only)
   }>({ open: false, type: "agent", targetId: null });
   const [busy, setBusy] = useState(false);
 
@@ -412,6 +413,9 @@ export default function App() {
           onDescribe={() =>
             setDescribe({ open: true, type: "agent", targetId: null })
           }
+          onVibe={() =>
+            setDescribe({ open: true, type: "agent", targetId: null, vibe: true })
+          }
         />
 
         <main
@@ -482,6 +486,7 @@ export default function App() {
         <DescribeModal
           initialType={describe.type}
           lockBlock={describe.targetId !== null}
+          vibe={describe.vibe}
           busy={busy}
           onGenerate={runGenerate}
           onCancel={() => setDescribe({ open: false, type: "agent", targetId: null })}
