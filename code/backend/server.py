@@ -45,6 +45,15 @@ def health():
     return {"ok": True}
 
 
+@app.get("/version")
+def version():
+    # RENDER_GIT_COMMIT is injected by Render; lets us confirm which build is live.
+    return {
+        "commit": os.environ.get("RENDER_GIT_COMMIT", "unknown")[:12],
+        "build": "litellm+groq-routing",
+    }
+
+
 @app.post("/approve")
 async def approve(req: Request):
     body = await req.json()
