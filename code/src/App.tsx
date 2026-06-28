@@ -402,8 +402,8 @@ export default function App() {
           ▶ Run
         </button>
         <button
-          onClick={() => setScheduleOpen(true)}
-          title="Schedule the crew to run on an interval"
+          disabled
+          title="Scheduling is temporarily disabled"
         >
           ⏰ {schedule ? humanSummary(schedule) : "Schedule"}
         </button>
