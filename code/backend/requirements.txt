@@ -2,5 +2,8 @@ fastapi>=0.110
 uvicorn[standard]>=0.29
 crewai>=0.80
 crewai-tools>=0.14
+# Required for non-OpenAI models (Groq llama, Gemini, …): CrewAI's native
+# providers only cover real OpenAI model names, so anything else routes via litellm.
+litellm>=1.40
 requests>=2.31
 python-dotenv>=1.0
