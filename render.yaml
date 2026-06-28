@@ -22,7 +22,7 @@ services:
         value: groq/llama-3.3-70b-versatile
       - key: LLM_API_KEY
         sync: false
-      # Optional server-side fallback for the Outlook mailbox; the browser
-      # modals normally supply tool credentials per run.
-      - key: OUTLOOK_USER
-        sync: false
+      # NOTE: tool credentials (Gmail, Jira, Outlook, HubSpot, …) are NOT set
+      # here. They come from the on-the-fly credential modals on the canvas and
+      # are sent with each run — so the same backend serves any tool/any user.
+      # The only server-side values are the LLM key (reasoning model) and CORS.
