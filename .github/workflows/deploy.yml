@@ -32,6 +32,9 @@ jobs:
           # so the public repo never hardcodes it. Set it at:
           # Settings → Secrets and variables → Actions → Variables → VITE_BACKEND_URL
           VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL }}
+          # Shared token so the deployed frontend can call the protected backend.
+          # Set at: Settings → Secrets and variables → Actions → Variables → VITE_BACKEND_TOKEN
+          VITE_BACKEND_TOKEN: ${{ vars.VITE_BACKEND_TOKEN }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
