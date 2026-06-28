@@ -9,10 +9,32 @@ from crewai import LLM
 
 
 def make_llm(settings: dict | None = None) -> LLM:
+    """Build the agents' LLM.
+
+    The browser's LLM settings are only trusted when they point at a real,
+    reachable endpoint with a key (the "Custom API" engine). The "Groq" engine
+    uses base_url="/llm" — a browser-only proxy path that is meaningless on the
+    server — so in that case (and Template) we fall back entirely to the backend's
+    own env (Render: LLM_BASE_URL / LLM_MODEL / LLM_API_KEY), which is configured
+    correctly. This avoids the "Failed to connect to OpenAI API" error caused by
+    a relative base_url + unprefixed model leaking through.
+    """
     settings = settings or {}
-    model = settings.get("model") or os.environ.get("LLM_MODEL") or "groq/llama-3.3-70b-versatile"
-    base_url = settings.get("baseUrl") or os.environ.get("LLM_BASE_URL") or ""
-    api_key = settings.get("apiKey") or os.environ.get("LLM_API_KEY") or ""
+    b_url = (settings.get("baseUrl") or "").strip()
+    b_key = (settings.get("apiKey") or "").strip()
+    b_model = (settings.get("model") or "").strip()
+
+    use_browser = b_url.startswith("http") and bool(b_key)
+
+    if use_browser:
+        base_url, api_key, model = b_url, b_key, b_model
+    else:
+        base_url = os.environ.get("LLM_BASE_URL", "").strip()
+        api_key = os.environ.get("LLM_API_KEY", "").strip()
+        model = os.environ.get("LLM_MODEL", "").strip()
+
+    model = model or "groq/llama-3.3-70b-versatile"
+
     kwargs: dict = {"model": model}
     if base_url:
         kwargs["base_url"] = base_url
