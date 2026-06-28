@@ -9,7 +9,10 @@ from __future__ import annotations
 import os
 
 TOOL_SCHEMA: dict[str, dict] = {
-    "gmail": {"auth": "oauth", "fields": ["GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET"]},
+    "gmail": {
+        "auth": "oauth",
+        "fields": ["GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN"],
+    },
     "outlook": {
         "auth": "oauth",
         "fields": [

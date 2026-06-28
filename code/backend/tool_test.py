@@ -15,6 +15,7 @@ import requests
 from creds import cred
 from tool_schema import TOOL_SCHEMA, missing_fields
 import graph
+import gmail as gmail_api
 
 
 def _outlook(creds: dict) -> dict:
@@ -52,19 +53,13 @@ def _hubspot(creds: dict) -> dict:
 
 
 def _gmail(creds: dict) -> dict:
-    # Full OAuth needs a user access token; test it if provided, else validate fields.
-    token = cred(creds, "GMAIL_ACCESS_TOKEN")
-    if token:
-        r = requests.get(
-            "https://gmail.googleapis.com/gmail/v1/users/me/profile",
-            headers={"Authorization": f"Bearer {token}"},
-            timeout=20,
-        )
-        if r.ok:
-            return {"ok": True, "message": f"Authenticated ✓ as {r.json().get('emailAddress', '?')}"}
-        return {"ok": False, "message": f"Gmail {r.status_code}: {r.text[:200]}"}
-    return {"ok": True, "message": "Fields present ✓ — Gmail needs an OAuth access token "
-                                   "(GMAIL_ACCESS_TOKEN) or an MCP server for a live read."}
+    # Refresh-token flow: exchange for an access token and read a few messages.
+    gmail_api.get_access_token(creds)  # validates client id/secret/refresh token
+    msgs = gmail_api.read_inbox(creds, top=3)
+    if msgs:
+        subs = "; ".join((m["subject"] or "(no subject)") for m in msgs)
+        return {"ok": True, "message": f"Authenticated ✓ — {len(msgs)} recent: {subs}"}
+    return {"ok": True, "message": "Authenticated ✓ — inbox returned 0 messages."}
 
 
 def _netsuite(_creds: dict) -> dict:

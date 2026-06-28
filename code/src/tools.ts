@@ -27,11 +27,12 @@ export const TOOLS: Record<string, ToolDef> = {
   gmail: {
     key: "gmail",
     label: "Gmail",
-    description: "Read email + attachments, send mail.",
+    description: "Read inbox via OAuth refresh token (works with a personal Gmail).",
     auth: "oauth",
     fields: [
       { name: "GMAIL_CLIENT_ID", label: "Client ID", secret: false },
       { name: "GMAIL_CLIENT_SECRET", label: "Client Secret", secret: true },
+      { name: "GMAIL_REFRESH_TOKEN", label: "Refresh token (OAuth Playground)", secret: true },
     ],
     pyImport: "from crewai_tools import MCPServerAdapter  # Gmail via MCP",
     pyVar: "gmail_tool",

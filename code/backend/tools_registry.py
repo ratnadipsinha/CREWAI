@@ -38,6 +38,25 @@ def tool_status(key: str, creds: dict) -> dict:
 # ---- per-tool builders: (creds) -> list[crewai tool] ------------------------
 
 
+def _build_gmail(creds: dict):
+    import gmail as gmail_api
+
+    @tool("read_gmail_inbox")
+    def read_gmail_inbox(query: str = "", count: int = 5) -> str:
+        """Read recent emails (subject, sender, snippet) from the connected Gmail
+        inbox. Optional `query` is a Gmail search (e.g. 'from:billing'); `count`
+        caps the number of messages (max 25)."""
+        try:
+            msgs = gmail_api.read_inbox(creds, top=count, query=query or None)
+        except Exception as e:  # noqa: BLE001
+            return f"[gmail error] {e}"
+        if not msgs:
+            return "No messages found."
+        return json.dumps(msgs, indent=2)
+
+    return [read_gmail_inbox]
+
+
 def _build_outlook(creds: dict):
     @tool("read_outlook_inbox")
     def read_outlook_inbox(query: str = "", count: int = 5) -> str:
@@ -150,11 +169,7 @@ def build_tools(key: str, creds: dict) -> list:
         except Exception:  # noqa: BLE001
             return _build_unsupported("ocr", "crewai_tools FileReadTool not installed")
     if key == "gmail":
-        return _build_unsupported(
-            "gmail",
-            "Gmail uses OAuth user consent; client id/secret alone can't read mail. "
-            "Provide a GMAIL_ACCESS_TOKEN or use an MCP server for live Gmail.",
-        )
+        return _build_gmail(creds)
     if key == "netsuite":
         return _build_unsupported(
             "netsuite", "NetSuite needs Token-Based Auth (TBA) signing; not wired in this demo."
