@@ -3,12 +3,13 @@
 // (see CredentialModal). Secrets are stored as env vars, never in the canvas state
 // or the generated Python.
 
-export type AuthType = "oauth" | "basic" | "apikey" | "none";
+export type AuthType = "oauth" | "basic" | "apikey" | "none" | "mcp";
 
 export interface CredentialField {
   name: string; // env var name
   label: string;
   secret: boolean; // render as password input
+  optional?: boolean; // not required to save / attach
 }
 
 export interface ToolDef {
@@ -102,6 +103,19 @@ export const TOOLS: Record<string, ToolDef> = {
     pyImport: "from crewai_tools import FileReadTool  # OCR/extract",
     pyVar: "ocr_tool",
     pyInit: "FileReadTool()",
+  },
+  mcp: {
+    key: "mcp",
+    label: "MCP Server (any)",
+    description: "Connect ANY service that has an MCP server — paste its URL, no code needed.",
+    auth: "mcp",
+    fields: [
+      { name: "MCP_SERVER_URL", label: "MCP server URL", secret: false },
+      { name: "MCP_AUTH_TOKEN", label: "Auth token (optional)", secret: true, optional: true },
+    ],
+    pyImport: "from crewai_tools import MCPServerAdapter",
+    pyVar: "mcp_tools",
+    pyInit: 'MCPServerAdapter({"url": os.environ["MCP_SERVER_URL"]}).tools',
   },
 };
 

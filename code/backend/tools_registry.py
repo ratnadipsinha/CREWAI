@@ -38,6 +38,22 @@ def tool_status(key: str, creds: dict) -> dict:
 # ---- per-tool builders: (creds) -> list[crewai tool] ------------------------
 
 
+def _build_mcp(creds: dict):
+    """Generic connector: expose every tool from a user-provided MCP server.
+    Works for ANY service that ships an MCP server — no per-service code."""
+    url = cred(creds, "MCP_SERVER_URL", required=True)
+    token = cred(creds, "MCP_AUTH_TOKEN")
+    try:
+        from crewai_tools import MCPServerAdapter
+
+        params: dict = {"url": url}
+        if token:
+            params["headers"] = {"Authorization": f"Bearer {token}"}
+        return list(MCPServerAdapter(params).tools)
+    except Exception as e:  # noqa: BLE001
+        return _build_unsupported("mcp", f"could not connect to MCP server: {e}")
+
+
 def _build_gmail(creds: dict):
     import gmail as gmail_api
 
@@ -170,6 +186,8 @@ def build_tools(key: str, creds: dict) -> list:
             return _build_unsupported("ocr", "crewai_tools FileReadTool not installed")
     if key == "gmail":
         return _build_gmail(creds)
+    if key == "mcp":
+        return _build_mcp(creds)
     if key == "netsuite":
         return _build_unsupported(
             "netsuite", "NetSuite needs Token-Based Auth (TBA) signing; not wired in this demo."

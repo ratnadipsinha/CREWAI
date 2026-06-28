@@ -90,7 +90,7 @@ export function CredentialModal({
           <button
             className="ghost"
             onClick={runTest}
-            disabled={testing || tool.fields.some((f) => !values[f.name].trim())}
+            disabled={testing || tool.fields.some((f) => !f.optional && !values[f.name].trim())}
             title="Verify these credentials against the live backend"
           >
             {testing ? "Testing…" : "Test login"}
@@ -102,7 +102,7 @@ export function CredentialModal({
           <button
             className="primary"
             onClick={() => onSave(values)}
-            disabled={tool.fields.some((f) => !values[f.name].trim())}
+            disabled={tool.fields.some((f) => !f.optional && !values[f.name].trim())}
           >
             Save & attach
           </button>

@@ -54,6 +54,15 @@ def version():
     }
 
 
+@app.get("/tools")
+def tools_catalog():
+    # Single source of truth for tool auth + fields, so the frontend can render
+    # connector modals without duplicating the schema.
+    from tool_schema import TOOL_SCHEMA
+
+    return TOOL_SCHEMA
+
+
 @app.post("/test-tool")
 async def test_tool(req: Request):
     body = await req.json()

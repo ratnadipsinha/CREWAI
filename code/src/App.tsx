@@ -239,7 +239,7 @@ export default function App() {
     }));
     if (!toolKey) return;
     const tool = TOOLS[toolKey];
-    const fieldNames = tool.fields.map((f) => f.name);
+    const fieldNames = tool.fields.filter((f) => !f.optional).map((f) => f.name);
     if (tool.auth !== "none" && !hasAllFields(creds, fieldNames)) {
       setCredPrompt({ toolKey, agentId: null }); // collect-only
     }
@@ -353,7 +353,7 @@ export default function App() {
         (k) =>
           TOOLS[k] &&
           TOOLS[k].auth !== "none" &&
-          !hasAllFields(creds, TOOLS[k].fields.map((f) => f.name)),
+          !hasAllFields(creds, TOOLS[k].fields.filter((f) => !f.optional).map((f) => f.name)),
       );
       if (needed.length) {
         setCredQueue(needed.slice(1));
@@ -456,7 +456,7 @@ export default function App() {
             taskTools={selected.type === "task" ? taskTools(selected.id) : undefined}
             credsSet={
               selected.type === "tool" && selected.toolKey && TOOLS[selected.toolKey]
-                ? hasAllFields(creds, TOOLS[selected.toolKey].fields.map((f) => f.name))
+                ? hasAllFields(creds, TOOLS[selected.toolKey].fields.filter((f) => !f.optional).map((f) => f.name))
                 : undefined
             }
             onChange={(patch) => patchNode(selected.id, patch)}

@@ -67,12 +67,25 @@ def _netsuite(_creds: dict) -> dict:
                                    "isn't exercised here."}
 
 
+def _mcp(creds: dict) -> dict:
+    url = cred(creds, "MCP_SERVER_URL", required=True)
+    token = cred(creds, "MCP_AUTH_TOKEN")
+    from crewai_tools import MCPServerAdapter  # lazy: only when testing MCP
+
+    params: dict = {"url": url}
+    if token:
+        params["headers"] = {"Authorization": f"Bearer {token}"}
+    names = [getattr(t, "name", "?") for t in MCPServerAdapter(params).tools]
+    return {"ok": True, "message": f"Connected ✓ — {len(names)} tool(s): {', '.join(names[:8])}"}
+
+
 _LIVE = {
     "outlook": _outlook,
     "jira": _jira,
     "hubspot": _hubspot,
     "gmail": _gmail,
     "netsuite": _netsuite,
+    "mcp": _mcp,
 }
 
 

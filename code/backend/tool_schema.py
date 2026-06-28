@@ -29,6 +29,8 @@ TOOL_SCHEMA: dict[str, dict] = {
         "fields": ["NETSUITE_ACCOUNT_ID", "NETSUITE_CONSUMER_KEY", "NETSUITE_TOKEN"],
     },
     "ocr": {"auth": "none", "fields": []},
+    # Generic connector: point it at ANY MCP server — no per-service code needed.
+    "mcp": {"auth": "mcp", "fields": ["MCP_SERVER_URL"], "optional": ["MCP_AUTH_TOKEN"]},
 }
 
 
