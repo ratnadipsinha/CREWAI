@@ -33,16 +33,21 @@ def make_llm(settings: dict | None = None) -> LLM:
         api_key = os.environ.get("LLM_API_KEY", "").strip()
         model = os.environ.get("LLM_MODEL", "").strip()
 
-    model = model or "groq/llama-3.3-70b-versatile"
+    model = model or "llama-3.3-70b-versatile"
 
-    # A provider-prefixed model (e.g. "groq/…") is routed by litellm to that
-    # provider's own endpoint, so a base_url on top would misroute it. Attach
-    # base_url only for a bare model name pointing at a custom OpenAI-compatible URL.
-    has_provider_prefix = "/" in model
+    # Route through litellm's OpenAI-compatible handler against the configured
+    # base_url (Groq exposes /openai/v1). We deliberately AVOID the native "groq/"
+    # provider because CrewAI/litellm injects an Anthropic-style prompt-cache
+    # breakpoint into the system message that Groq's groq/ endpoint rejects
+    # ("property 'cache_breakpoint' is unsupported"). The openai/ path doesn't.
+    if base_url:
+        name = model.split("/", 1)[1] if "/" in model else model
+        kwargs: dict = {"model": f"openai/{name}", "base_url": base_url}
+        if api_key:
+            kwargs["api_key"] = api_key
+        return LLM(**kwargs)
 
-    kwargs: dict = {"model": model}
+    kwargs = {"model": model}
     if api_key:
         kwargs["api_key"] = api_key
-    if base_url and not has_provider_prefix:
-        kwargs["base_url"] = base_url
     return LLM(**kwargs)
