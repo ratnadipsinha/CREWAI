@@ -16,30 +16,9 @@ import json
 import requests
 from crewai.tools import tool
 
-from creds import cred, missing_fields
+from creds import cred
+from tool_schema import TOOL_SCHEMA, missing_fields
 import graph
-
-
-# Mirrors TOOLS in src/tools.ts (auth + field env-var names).
-TOOL_SCHEMA: dict[str, dict] = {
-    "gmail": {"auth": "oauth", "fields": ["GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET"]},
-    "outlook": {
-        "auth": "oauth",
-        "fields": [
-            "OUTLOOK_CLIENT_ID",
-            "OUTLOOK_TENANT_ID",
-            "OUTLOOK_CLIENT_SECRET",
-            "OUTLOOK_USER",
-        ],
-    },
-    "jira": {"auth": "basic", "fields": ["JIRA_URL", "JIRA_USER", "JIRA_TOKEN"]},
-    "hubspot": {"auth": "apikey", "fields": ["HUBSPOT_API_KEY"]},
-    "netsuite": {
-        "auth": "apikey",
-        "fields": ["NETSUITE_ACCOUNT_ID", "NETSUITE_CONSUMER_KEY", "NETSUITE_TOKEN"],
-    },
-    "ocr": {"auth": "none", "fields": []},
-}
 
 
 def tool_status(key: str, creds: dict) -> dict:
