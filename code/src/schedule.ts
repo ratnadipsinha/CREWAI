@@ -212,6 +212,18 @@ export function windowsInstaller(cfg: ScheduleConfig, projectName?: string): str
   ].join("\r\n");
 }
 
+// One-click removal of the Windows task.
+export function windowsUninstaller(projectName?: string): string {
+  const name = taskName(projectName);
+  return [
+    "@echo off",
+    "REM Removes this crew from Windows Task Scheduler. Run as administrator.",
+    `schtasks /delete /tn "${name}" /f`,
+    `echo Removed scheduled task: ${name}`,
+    "pause",
+  ].join("\r\n");
+}
+
 // Installer for cron (Linux/macOS). Bakes the absolute project path at install.
 export function cronInstaller(cfg: ScheduleConfig, projectName?: string): string {
   const name = taskName(projectName);

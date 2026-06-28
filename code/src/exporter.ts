@@ -8,6 +8,7 @@ import {
   ScheduleConfig,
   scheduleMarkdown,
   windowsInstaller,
+  windowsUninstaller,
   cronInstaller,
 } from "./schedule";
 
@@ -35,6 +36,7 @@ export async function exportProject(
     zip.file("SCHEDULE.md", scheduleMarkdown(schedule, projectName));
     // Double-click / one-command installers that register the OS-level task.
     zip.file("register_task.bat", windowsInstaller(schedule, projectName));
+    zip.file("unregister_task.bat", windowsUninstaller(projectName));
     zip.file("install_schedule.sh", cronInstaller(schedule, projectName));
   }
 
