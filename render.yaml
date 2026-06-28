@@ -22,6 +22,10 @@ services:
         value: groq/llama-3.3-70b-versatile
       - key: LLM_API_KEY
         sync: false
+      # Optional shared-token auth. Set this (and VITE_BACKEND_TOKEN on the
+      # frontend) to lock the backend to your own deployed app. Leave unset = open.
+      - key: BACKEND_TOKEN
+        sync: false
       # NOTE: tool credentials (Gmail, Jira, Outlook, HubSpot, …) are NOT set
       # here. They come from the on-the-fly credential modals on the canvas and
       # are sent with each run — so the same backend serves any tool/any user.

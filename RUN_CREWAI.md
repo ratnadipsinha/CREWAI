@@ -56,4 +56,3 @@ result = crew.kickoff(inputs={...})
 
 - <https://docs.crewai.com/installation>
 - <https://docs.crewai.com/quickstart>
-</content>
