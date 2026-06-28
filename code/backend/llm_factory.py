@@ -35,9 +35,14 @@ def make_llm(settings: dict | None = None) -> LLM:
 
     model = model or "groq/llama-3.3-70b-versatile"
 
+    # A provider-prefixed model (e.g. "groq/…", "openai/…") is routed by litellm
+    # to that provider's own endpoint — passing a base_url on top can misroute it.
+    # Only attach base_url for a bare model name that needs an explicit endpoint.
+    has_provider_prefix = "/" in model
+
     kwargs: dict = {"model": model}
-    if base_url:
-        kwargs["base_url"] = base_url
     if api_key:
         kwargs["api_key"] = api_key
+    if base_url and not has_provider_prefix:
+        kwargs["base_url"] = base_url
     return LLM(**kwargs)
