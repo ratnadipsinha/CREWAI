@@ -7,11 +7,13 @@ import { TOOLS } from "../tools";
 export function CredentialModal({
   toolKey,
   creds,
+  backendUrl,
   onSave,
   onCancel,
 }: {
   toolKey: string;
   creds: CredStore;
+  backendUrl?: string;
   onSave: (values: CredStore) => void;
   onCancel: () => void;
 }) {
@@ -21,6 +23,31 @@ export function CredentialModal({
     tool.fields.forEach((f) => (init[f.name] = creds[f.name] ?? ""));
     return init;
   });
+  const [testing, setTesting] = useState(false);
+  const [testMsg, setTestMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function runTest() {
+    const base = (backendUrl || "").trim().replace(/\/$/, "");
+    if (!base) {
+      setTestMsg({ ok: false, text: "Set a live-run backend URL in Settings to test login." });
+      return;
+    }
+    setTesting(true);
+    setTestMsg(null);
+    try {
+      const res = await fetch(`${base}/test-tool`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toolKey, credentials: values }),
+      });
+      const data = await res.json();
+      setTestMsg({ ok: !!data.ok, text: data.message || (data.ok ? "OK" : "Failed") });
+    } catch (e) {
+      setTestMsg({ ok: false, text: `Could not reach backend: ${(e as Error).message}` });
+    } finally {
+      setTesting(false);
+    }
+  }
 
   if (tool.auth === "none") {
     // no credentials needed — auto-confirm
@@ -52,7 +79,23 @@ export function CredentialModal({
           Stored only in this browser session as env vars. Never written into the
           generated code — export ships a <code>.env.example</code> with names only.
         </p>
+        {testMsg && (
+          <p className={`test-result ${testMsg.ok ? "ok" : "fail"}`}>
+            {testMsg.ok ? "✓ " : "✗ "}
+            {testMsg.text}
+          </p>
+        )}
+
         <div className="modal-actions">
+          <button
+            className="ghost"
+            onClick={runTest}
+            disabled={testing || tool.fields.some((f) => !values[f.name].trim())}
+            title="Verify these credentials against the live backend"
+          >
+            {testing ? "Testing…" : "Test login"}
+          </button>
+          <div style={{ flex: 1 }} />
           <button className="ghost" onClick={onCancel}>
             Cancel
           </button>

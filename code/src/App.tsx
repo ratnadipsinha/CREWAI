@@ -522,6 +522,7 @@ export default function App() {
         <CredentialModal
           toolKey={credPrompt.toolKey}
           creds={creds}
+          backendUrl={settings.backendUrl}
           onCancel={() => {
             setCredPrompt(null);
             setCredQueue([]);

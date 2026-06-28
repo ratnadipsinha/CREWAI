@@ -54,6 +54,14 @@ def version():
     }
 
 
+@app.post("/test-tool")
+async def test_tool(req: Request):
+    body = await req.json()
+    import tool_test  # light import (no crewai)
+
+    return tool_test.test_tool(body.get("toolKey", ""), body.get("credentials", {}) or {})
+
+
 @app.post("/approve")
 async def approve(req: Request):
     body = await req.json()
