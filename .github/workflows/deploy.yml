@@ -27,6 +27,11 @@ jobs:
           node-version: 20
       - run: npm ci
       - run: npm run build
+        env:
+          # Your backend URL is injected here from a repo VARIABLE (not committed),
+          # so the public repo never hardcodes it. Set it at:
+          # Settings → Secrets and variables → Actions → Variables → VITE_BACKEND_URL
+          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

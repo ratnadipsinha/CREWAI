@@ -5,7 +5,8 @@ of Triggers, Agents, Tasks, Tools, Branches, Human gates and End blocks on a can
 wire them with connectors, and get a real, runnable CrewAI project out the other end.
 
 - **App:** [`code/`](code/) — Vite + React + TypeScript SPA
-- **Diagrams:** [`diagram/`](diagram/) — example flow diagrams
+- **Backend:** [`code/backend/`](code/backend/) — FastAPI live-run service (real CrewAI)
+- **Deploy your own copy:** see [`SETUP.md`](SETUP.md)
 
 ## Live link
 

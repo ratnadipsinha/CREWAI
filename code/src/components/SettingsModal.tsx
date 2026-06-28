@@ -101,7 +101,7 @@ export function SettingsModal({
             <span>Live-run backend URL</span>
             <input
               value={s.backendUrl}
-              placeholder="https://crewai-live-run.onrender.com"
+              placeholder="https://your-backend.onrender.com"
               onChange={(e) => setS({ ...s, backendUrl: e.target.value })}
             />
           </label>
