@@ -12,11 +12,9 @@ const ORDER: BlockType[] = [
 
 export function LeftRail({
   onAdd,
-  onDescribe,
   onVibe,
 }: {
   onAdd: (t: BlockType) => void;
-  onDescribe: () => void;
   onVibe: () => void;
 }) {
   return (
@@ -44,12 +42,6 @@ export function LeftRail({
           <span>{BLOCK_META[t].label}</span>
         </button>
       ))}
-      <button className="rail-item describe" onClick={onDescribe}>
-        <span className="rail-icon" style={{ background: "#0ea5e9" }}>
-          ✨
-        </span>
-        <span>Describe a block</span>
-      </button>
     </aside>
   );
 }

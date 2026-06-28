@@ -410,9 +410,6 @@ export default function App() {
       <div className="body">
         <LeftRail
           onAdd={addNode}
-          onDescribe={() =>
-            setDescribe({ open: true, type: "agent", targetId: null })
-          }
           onVibe={() =>
             setDescribe({ open: true, type: "agent", targetId: null, vibe: true })
           }
