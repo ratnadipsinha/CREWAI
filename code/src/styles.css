@@ -226,3 +226,12 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-si
 .rail-vibe-text { display: flex; flex-direction: column; line-height: 1.2; }
 .rail-vibe-text small { opacity: .85; font-size: 10px; }
 .rail-sep { height: 1px; background: var(--panel-2, #334155); margin: 12px 2px; }
+
+/* simplified settings: AI engine picker */
+.engine-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 6px 0 12px; }
+.engine-card { display: flex; flex-direction: column; gap: 2px; padding: 10px; border-radius: 8px;
+  border: 1px solid var(--panel-2, #334155); background: transparent; color: inherit; cursor: pointer; text-align: left; }
+.engine-card small { color: var(--muted); font-size: 10px; }
+.engine-card.active { border-color: #0ea5e9; box-shadow: 0 0 0 1px #0ea5e9 inset; }
+.advanced { margin-top: 6px; }
+.advanced summary { cursor: pointer; color: var(--muted); font-size: 12px; user-select: none; }

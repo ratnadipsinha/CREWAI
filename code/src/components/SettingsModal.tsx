@@ -1,7 +1,17 @@
 import { useState } from "react";
-import { llmChat, VibeSettings } from "../vibe";
+import { VibeSettings } from "../vibe";
 
-// Configure the LLM backend used for vibe-fill and live Run.
+// Simple AI-engine picker for "Vibe your idea". Three choices; the fiddly
+// base-URL/model/key fields only appear for "Custom", and the pre-wired backend
+// URL lives under Advanced.
+type Engine = "template" | "groq" | "custom";
+
+function engineOf(s: VibeSettings): Engine {
+  if (s.provider === "template") return "template";
+  if (s.baseUrl === "/llm") return "groq";
+  return "custom";
+}
+
 export function SettingsModal({
   initial,
   onSave,
@@ -12,119 +22,96 @@ export function SettingsModal({
   onCancel: () => void;
 }) {
   const [s, setS] = useState<VibeSettings>(initial);
-  const [test, setTest] = useState<string>("");
-  const [testing, setTesting] = useState(false);
+  const engine = engineOf(s);
 
-  async function runTest() {
-    setTesting(true);
-    setTest("");
-    try {
-      const out = await llmChat(s, "You are a test.", "Reply with exactly: OK");
-      setTest(`✓ Connected — model replied: ${out.slice(0, 60)}`);
-    } catch (e) {
-      setTest(`✗ Failed: ${(e as Error).message}`);
-    } finally {
-      setTesting(false);
+  function pick(next: Engine) {
+    if (next === "template") {
+      setS({ ...s, provider: "template" });
+    } else if (next === "groq") {
+      // built-in proxy — key lives server-side, nothing to enter
+      setS({ ...s, provider: "openai", baseUrl: "/llm", model: "llama-3.3-70b-versatile" });
+    } else {
+      setS({
+        ...s,
+        provider: "openai",
+        baseUrl: s.baseUrl === "/llm" ? "https://api.openai.com/v1" : s.baseUrl,
+        model: s.model || "gpt-4o-mini",
+      });
     }
   }
 
-  const presets = [
-    // Recommended: routes through the dev-server proxy (/llm). Key lives in
-    // .env.local, never in the browser; no CORS issues. Free with a Groq key.
-    { label: "Proxy (free)", url: "/llm", model: "llama-3.3-70b-versatile" },
-    { label: "OpenAI", url: "https://api.openai.com/v1", model: "gpt-4o-mini" },
-    { label: "Groq", url: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile" },
-    { label: "Ollama (local)", url: "http://localhost:11434/v1", model: "qwen2.5-coder" },
+  const OPTIONS: { key: Engine; title: string; note: string }[] = [
+    { key: "template", title: "Template", note: "Free · offline · no AI" },
+    { key: "groq", title: "Groq (recommended)", note: "Built-in · no key needed" },
+    { key: "custom", title: "Custom API", note: "Your OpenAI-compatible key" },
   ];
 
   return (
     <div className="overlay" onClick={onCancel}>
       <div className="modal sched" onClick={(e) => e.stopPropagation()}>
-        <h3>LLM settings</h3>
-        <p className="muted small">
-          Used for vibe-fill and live Run. Any OpenAI-compatible endpoint works.
-        </p>
+        <h3>AI engine</h3>
+        <p className="muted small">Powers “Vibe your idea” (turning your idea into the canvas).</p>
 
-        <label className="field">
-          <span>Provider mode</span>
-          <select
-            value={s.provider}
-            onChange={(e) => setS({ ...s, provider: e.target.value as any })}
-          >
-            <option value="template">Template (free, offline — no LLM)</option>
-            <option value="ollama">Ollama (local)</option>
-            <option value="openai">OpenAI-compatible API</option>
-          </select>
-        </label>
-
-        <div className="field">
-          <span>Quick presets</span>
-          <div className="seg">
-            {presets.map((p) => (
-              <button
-                key={p.label}
-                className="seg-btn"
-                onClick={() =>
-                  setS({
-                    ...s,
-                    provider: p.label.startsWith("Ollama") ? "ollama" : "openai",
-                    baseUrl: p.url,
-                    model: p.model,
-                  })
-                }
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+        <div className="engine-grid">
+          {OPTIONS.map((o) => (
+            <button
+              key={o.key}
+              className={`engine-card ${engine === o.key ? "active" : ""}`}
+              onClick={() => pick(o.key)}
+            >
+              <b>{o.title}</b>
+              <small>{o.note}</small>
+            </button>
+          ))}
         </div>
 
-        <label className="field">
-          <span>Base URL</span>
-          <input
-            value={s.baseUrl}
-            placeholder="https://api.openai.com/v1"
-            onChange={(e) => setS({ ...s, baseUrl: e.target.value })}
-          />
-        </label>
-        <label className="field">
-          <span>Model</span>
-          <input
-            value={s.model}
-            placeholder="gpt-4o-mini"
-            onChange={(e) => setS({ ...s, model: e.target.value })}
-          />
-        </label>
-        <label className="field">
-          <span>API key {s.provider === "ollama" && "(not needed for Ollama)"}</span>
-          <input
-            type="password"
-            value={s.apiKey}
-            placeholder="sk-..."
-            onChange={(e) => setS({ ...s, apiKey: e.target.value })}
-          />
-        </label>
+        {engine === "custom" && (
+          <>
+            <label className="field">
+              <span>Base URL</span>
+              <input
+                value={s.baseUrl}
+                placeholder="https://api.openai.com/v1"
+                onChange={(e) => setS({ ...s, baseUrl: e.target.value })}
+              />
+            </label>
+            <label className="field">
+              <span>Model</span>
+              <input
+                value={s.model}
+                placeholder="gpt-4o-mini"
+                onChange={(e) => setS({ ...s, model: e.target.value })}
+              />
+            </label>
+            <label className="field">
+              <span>API key</span>
+              <input
+                type="password"
+                value={s.apiKey}
+                placeholder="sk-..."
+                onChange={(e) => setS({ ...s, apiKey: e.target.value })}
+              />
+            </label>
+          </>
+        )}
 
-        <label className="field">
-          <span>Live-run backend URL (optional)</span>
-          <input
-            value={s.backendUrl}
-            placeholder="http://localhost:8000  (empty = in-browser dry run)"
-            onChange={(e) => setS({ ...s, backendUrl: e.target.value })}
-          />
-        </label>
-        <p className="muted small">
-          Set this to the Python backend (see <code>backend/</code>) to make{" "}
-          <b>Run</b> a real run — actual CrewAI agents and tools (Outlook, Jira,
-          HubSpot…), with credentials sent only at run time.
-        </p>
+        <details className="advanced">
+          <summary>Advanced</summary>
+          <label className="field">
+            <span>Live-run backend URL</span>
+            <input
+              value={s.backendUrl}
+              placeholder="https://crewai-live-run.onrender.com"
+              onChange={(e) => setS({ ...s, backendUrl: e.target.value })}
+            />
+          </label>
+          <p className="muted small">
+            Pre-configured for deployment. Leave as-is unless you’re running your own backend.
+          </p>
+        </details>
 
         <div className="modal-actions">
-          <button className="ghost" onClick={runTest} disabled={testing || s.provider === "template"}>
-            {testing ? "Testing…" : "Test connection"}
-          </button>
-          {test && <span className="muted small" style={{ flex: 1 }}>{test}</span>}
-          {!test && <div style={{ flex: 1 }} />}
+          <div style={{ flex: 1 }} />
           <button className="ghost" onClick={onCancel}>
             Cancel
           </button>
@@ -132,10 +119,6 @@ export function SettingsModal({
             Save
           </button>
         </div>
-        <p className="muted small">
-          The API key is stored only in this browser (localStorage). It is sent
-          directly to the endpoint you configure.
-        </p>
       </div>
     </div>
   );
