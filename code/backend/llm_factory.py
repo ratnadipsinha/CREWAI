@@ -33,16 +33,21 @@ def make_llm(settings: dict | None = None) -> LLM:
         api_key = os.environ.get("LLM_API_KEY", "").strip()
         model = os.environ.get("LLM_MODEL", "").strip()
 
-    model = model or "groq/llama-3.3-70b-versatile"
+    model = model or "llama-3.3-70b-versatile"
 
-    # A provider-prefixed model (e.g. "groq/…", "openai/…") is routed by litellm
-    # to that provider's own endpoint — passing a base_url on top can misroute it.
-    # Only attach base_url for a bare model name that needs an explicit endpoint.
-    has_provider_prefix = "/" in model
+    # Route through CrewAI's NATIVE "openai" provider against an OpenAI-compatible
+    # endpoint (Groq, OpenAI, OpenRouter, …). This needs no litellm fallback —
+    # "openai" is a built-in provider — so the container build stays lean.
+    # A "groq/…" style prefix is stripped; the base_url decides the real endpoint.
+    if base_url:
+        name = model.split("/", 1)[1] if "/" in model else model
+        kwargs: dict = {"model": f"openai/{name}", "base_url": base_url}
+        if api_key:
+            kwargs["api_key"] = api_key
+        return LLM(**kwargs)
 
-    kwargs: dict = {"model": model}
+    # No base_url: trust the model string as-is (e.g. a provider-prefixed model).
+    kwargs = {"model": model}
     if api_key:
         kwargs["api_key"] = api_key
-    if base_url and not has_provider_prefix:
-        kwargs["base_url"] = base_url
     return LLM(**kwargs)

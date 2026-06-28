@@ -2,8 +2,5 @@ fastapi>=0.110
 uvicorn[standard]>=0.29
 crewai>=0.80
 crewai-tools>=0.14
-# Broad model-provider support (Groq, OpenAI, Gemini, …). CrewAI's native list
-# doesn't include Groq, so the "groq/…" model needs litellm to initialize.
-litellm>=1.40
 requests>=2.31
 python-dotenv>=1.0
