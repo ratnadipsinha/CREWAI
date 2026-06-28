@@ -7,15 +7,39 @@ import os
 
 from crewai import LLM
 
-# Let litellm strip/modify params a provider doesn't accept. CrewAI injects an
-# Anthropic-style prompt-cache breakpoint into the system message; Groq rejects
-# it ("property 'cache_breakpoint' is unsupported"). These flags make litellm
-# drop/adapt such fields instead of failing the request.
-try:  # pragma: no cover - best effort, litellm is always present in the image
+# CrewAI injects an Anthropic-style prompt-cache breakpoint into the system
+# message; Groq rejects it ("property 'cache_breakpoint' is unsupported").
+# drop_params/modify_params don't reach inside the message, so we wrap
+# litellm.completion (the call CrewAI ultimately makes) and recursively strip any
+# `cache_control` / `cache_breakpoint` keys from the messages before they're sent.
+def _scrub_cache(obj):
+    if isinstance(obj, dict):
+        obj.pop("cache_control", None)
+        obj.pop("cache_breakpoint", None)
+        for v in obj.values():
+            _scrub_cache(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            _scrub_cache(v)
+    return obj
+
+
+try:  # pragma: no cover - litellm is always present in the image
     import litellm
 
     litellm.drop_params = True
     litellm.modify_params = True
+
+    if not getattr(litellm, "_cache_scrub_patched", False):
+        _orig_completion = litellm.completion
+
+        def _patched_completion(*args, **kwargs):
+            if kwargs.get("messages"):
+                _scrub_cache(kwargs["messages"])
+            return _orig_completion(*args, **kwargs)
+
+        litellm.completion = _patched_completion
+        litellm._cache_scrub_patched = True
 except Exception:
     pass
 
