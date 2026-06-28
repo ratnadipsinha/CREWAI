@@ -63,6 +63,33 @@ def tools_catalog():
     return TOOL_SCHEMA
 
 
+@app.post("/schedule")
+async def schedule(req: Request):
+    body = await req.json()
+    import scheduler  # lazy (pulls crewai)
+
+    payload = {
+        "flow": body["flow"],
+        "credentials": body.get("credentials", {}) or {},
+        "llm": body.get("llm", {}) or {},
+    }
+    return scheduler.add(body["cron"], body.get("summary", ""), payload)
+
+
+@app.get("/schedules")
+def schedules():
+    import scheduler
+
+    return scheduler.listing()
+
+
+@app.delete("/schedule/{job_id}")
+def unschedule(job_id: str):
+    import scheduler
+
+    return {"removed": scheduler.remove(job_id)}
+
+
 @app.post("/test-tool")
 async def test_tool(req: Request):
     body = await req.json()

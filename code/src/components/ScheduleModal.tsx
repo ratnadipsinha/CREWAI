@@ -25,16 +25,36 @@ const OS_OPTIONS: { key: OsKey; label: string }[] = [
 // The saved config ships in the exported project's SCHEDULE.md.
 export function ScheduleModal({
   initial,
+  canScheduleLive,
   onSave,
+  onScheduleLive,
   onCancel,
 }: {
   initial: ScheduleConfig;
+  canScheduleLive?: boolean; // backend set + canvas not empty
   onSave: (cfg: ScheduleConfig) => void;
+  onScheduleLive?: (cfg: ScheduleConfig) => Promise<{ next_run: string | null }>;
   onCancel: () => void;
 }) {
   const [cfg, setCfg] = useState<ScheduleConfig>(initial);
   const [os, setOs] = useState<OsKey>("windows");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const art = scheduleArtifacts(cfg);
+
+  async function scheduleLive() {
+    if (!onScheduleLive) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const rec = await onScheduleLive(cfg);
+      setMsg({ ok: true, text: `Scheduled ✓ — next run: ${rec.next_run ?? "(pending)"}` });
+    } catch (e) {
+      setMsg({ ok: false, text: `Schedule failed: ${(e as Error).message}` });
+    } finally {
+      setBusy(false);
+    }
+  }
 
   const osCommand: Record<OsKey, string> = {
     windows: art.windows,
@@ -119,17 +139,34 @@ export function ScheduleModal({
         </div>
 
         <p className="muted small">
-          Commands for <b>all</b> platforms are written to <code>SCHEDULE.md</code>{" "}
-          in the exported project.
+          <b>Schedule on backend</b> actually runs the crew on this interval (headless,
+          human gates auto-approved). The commands below are also written to{" "}
+          <code>SCHEDULE.md</code> for running the exported project yourself.
         </p>
+
+        {msg && (
+          <p className={`test-result ${msg.ok ? "ok" : "fail"}`}>{msg.text}</p>
+        )}
 
         <div className="modal-actions">
           <div style={{ flex: 1 }} />
           <button className="ghost" onClick={onCancel}>
             Cancel
           </button>
-          <button className="primary" onClick={() => onSave(cfg)}>
-            Save schedule
+          <button className="ghost" onClick={() => onSave(cfg)} title="Save the cadence for export only">
+            Save for export
+          </button>
+          <button
+            className="primary"
+            onClick={scheduleLive}
+            disabled={busy || !canScheduleLive}
+            title={
+              canScheduleLive
+                ? "Register this schedule on the live backend"
+                : "Set a backend URL in Settings and add blocks to the canvas first"
+            }
+          >
+            {busy ? "Scheduling…" : "Schedule on backend"}
           </button>
         </div>
       </div>

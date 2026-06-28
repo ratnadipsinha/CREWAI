@@ -29,8 +29,9 @@ import { CredentialModal } from "./components/CredentialModal";
 import { RunPanel } from "./components/RunPanel";
 import { ScheduleModal } from "./components/ScheduleModal";
 import { SettingsModal } from "./components/SettingsModal";
-import { DEFAULT_SCHEDULE, humanSummary, ScheduleConfig } from "./schedule";
+import { DEFAULT_SCHEDULE, humanSummary, ScheduleConfig, toCron } from "./schedule";
 import { BackendStatus } from "./components/BackendStatus";
+import { scheduleRun } from "./backendRun";
 
 let counter = 1; // clean canvas: numbering starts at 1.0
 
@@ -510,9 +511,22 @@ export default function App() {
       {scheduleOpen && (
         <ScheduleModal
           initial={schedule ?? DEFAULT_SCHEDULE}
+          canScheduleLive={!!settings.backendUrl.trim() && state.nodes.length > 0}
           onSave={(cfg) => {
             setSchedule(cfg);
             setScheduleOpen(false);
+          }}
+          onScheduleLive={async (cfg) => {
+            setSchedule(cfg);
+            const rec = await scheduleRun(
+              settings,
+              state,
+              creds,
+              toCron(cfg),
+              humanSummary(cfg),
+            );
+            setScheduleOpen(false);
+            return rec;
           }}
           onCancel={() => setScheduleOpen(false)}
         />

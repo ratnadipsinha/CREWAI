@@ -35,6 +35,43 @@ export async function approveGate(
   });
 }
 
+export interface ScheduleRecord {
+  id: string;
+  cron: string;
+  summary: string;
+  next_run: string | null;
+  last_run: string | null;
+  last_result: string | null;
+}
+
+// Register a recurring crew run on the backend (cron trigger, runs headless).
+export async function scheduleRun(
+  settings: VibeSettings,
+  state: FlowState,
+  creds: CredStore,
+  cron: string,
+  summary: string,
+): Promise<ScheduleRecord> {
+  const res = await fetch(`${base(settings)}/schedule`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      flow: state,
+      credentials: creds,
+      llm: {
+        provider: settings.provider,
+        baseUrl: settings.baseUrl,
+        model: settings.model,
+        apiKey: settings.apiKey,
+      },
+      cron,
+      summary,
+    }),
+  });
+  if (!res.ok) throw new Error(`schedule failed ${res.status}: ${await res.text().catch(() => "")}`);
+  return res.json();
+}
+
 // Stream a real run. Calls onEvent for every NDJSON line the backend emits.
 export async function streamRun(
   settings: VibeSettings,
