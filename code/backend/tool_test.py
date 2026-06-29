@@ -62,6 +62,13 @@ def _gmail(creds: dict) -> dict:
     return {"ok": True, "message": "Authenticated ✓ — inbox returned 0 messages."}
 
 
+def _gmail_send(creds: dict) -> dict:
+    # Validate the OAuth handshake; we don't actually send a test email.
+    gmail_api.get_access_token(creds)
+    return {"ok": True, "message": "Authenticated ✓ — ready to send (token must have the "
+                                   "gmail.send scope; the agent sends on Run)."}
+
+
 def _netsuite(_creds: dict) -> dict:
     return {"ok": True, "message": "Fields present ✓ — NetSuite Token-Based Auth signing "
                                    "isn't exercised here."}
@@ -84,6 +91,7 @@ _LIVE = {
     "jira": _jira,
     "hubspot": _hubspot,
     "gmail": _gmail,
+    "gmail_send": _gmail_send,
     "netsuite": _netsuite,
     "mcp": _mcp,
 }

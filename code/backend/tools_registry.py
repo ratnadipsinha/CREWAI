@@ -73,6 +73,22 @@ def _build_gmail(creds: dict):
     return [read_gmail_inbox]
 
 
+def _build_gmail_send(creds: dict):
+    import gmail as gmail_api
+
+    @tool("send_gmail")
+    def send_gmail(to: str, subject: str, body: str) -> str:
+        """Send an email from the connected Gmail account. Provide the recipient
+        `to`, a `subject`, and the plain-text `body`. Returns the sent message id."""
+        try:
+            mid = gmail_api.send_message(creds, to=to, subject=subject, body=body)
+        except Exception as e:  # noqa: BLE001
+            return f"[gmail send error] {e}"
+        return f"Email sent to {to} (id {mid})"
+
+    return [send_gmail]
+
+
 def _build_outlook(creds: dict):
     @tool("read_outlook_inbox")
     def read_outlook_inbox(query: str = "", count: int = 5) -> str:
@@ -186,6 +202,8 @@ def build_tools(key: str, creds: dict) -> list:
             return _build_unsupported("ocr", "crewai_tools FileReadTool not installed")
     if key == "gmail":
         return _build_gmail(creds)
+    if key == "gmail_send":
+        return _build_gmail_send(creds)
     if key == "mcp":
         return _build_mcp(creds)
     if key == "netsuite":

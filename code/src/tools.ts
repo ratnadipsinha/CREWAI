@@ -40,6 +40,22 @@ export const TOOLS: Record<string, ToolDef> = {
     pyInit:
       'MCPServerAdapter({"url": "https://gmail-mcp.example.com/sse"})  # auth via env',
   },
+  gmail_send: {
+    key: "gmail_send",
+    label: "Gmail (send)",
+    description:
+      "Send email from your Gmail via OAuth. Refresh token must have the gmail.send scope.",
+    auth: "oauth",
+    fields: [
+      { name: "GMAIL_CLIENT_ID", label: "Client ID", secret: false },
+      { name: "GMAIL_CLIENT_SECRET", label: "Client Secret", secret: true },
+      { name: "GMAIL_REFRESH_TOKEN", label: "Refresh token (gmail.send scope)", secret: true },
+    ],
+    pyImport:
+      "import base64, requests\nfrom email.message import EmailMessage\nfrom crewai.tools import tool  # Gmail send",
+    pyVar: "gmail_send_tool",
+    pyInit: "make_gmail_send_tool()",
+  },
   outlook: {
     key: "outlook",
     label: "Outlook",

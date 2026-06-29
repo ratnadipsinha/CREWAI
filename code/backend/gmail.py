@@ -78,3 +78,29 @@ def read_inbox(creds: dict, top: int = 5, query: str | None = None) -> list[dict
         except Exception:
             pass
     return _fetch(creds, top, None)
+
+
+def send_message(creds: dict, to: str, subject: str, body: str) -> str:
+    """Send an email from the connected Gmail account.
+
+    Requires the refresh token to carry the `gmail.send` scope (the read-only
+    token won't work — re-authorize with https://www.googleapis.com/auth/gmail.send).
+    """
+    import base64
+    from email.message import EmailMessage
+
+    token = get_access_token(creds)
+    msg = EmailMessage()
+    msg["To"] = to
+    msg["Subject"] = subject
+    msg.set_content(body)
+    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+    r = requests.post(
+        f"{_API}/messages/send",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"raw": raw},
+        timeout=30,
+    )
+    if not r.ok:
+        raise RuntimeError(f"Gmail send failed ({r.status_code}): {r.text}")
+    return r.json().get("id", "sent")

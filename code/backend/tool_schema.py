@@ -13,6 +13,12 @@ TOOL_SCHEMA: dict[str, dict] = {
         "auth": "oauth",
         "fields": ["GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN"],
     },
+    "gmail_send": {
+        "auth": "oauth",
+        # Same OAuth app as Gmail read, but the refresh token must carry the
+        # gmail.send scope (re-authorize with .../auth/gmail.send).
+        "fields": ["GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN"],
+    },
     "outlook": {
         "auth": "oauth",
         "fields": [

@@ -92,6 +92,27 @@ export function genToolsFile(state: FlowState): string {
       "",
     );
   }
+  if (keys.includes("gmail_send")) {
+    lines.push(
+      "def make_gmail_send_tool():",
+      "    @tool('send_gmail')",
+      "    def send_gmail(to: str, subject: str, body: str) -> str:",
+      '        """Send an email from the connected Gmail account."""',
+      "        tok = requests.post('https://oauth2.googleapis.com/token', data={",
+      "            'grant_type': 'refresh_token',",
+      "            'refresh_token': os.environ['GMAIL_REFRESH_TOKEN'],",
+      "            'client_id': os.environ['GMAIL_CLIENT_ID'],",
+      "            'client_secret': os.environ['GMAIL_CLIENT_SECRET'],",
+      "        }, timeout=30).json()['access_token']",
+      "        msg = EmailMessage(); msg['To'] = to; msg['Subject'] = subject; msg.set_content(body)",
+      "        raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()",
+      "        r = requests.post('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',",
+      "                          headers={'Authorization': f'Bearer {tok}'}, json={'raw': raw}, timeout=30)",
+      "        return 'sent' if r.ok else f'[gmail {r.status_code}] {r.text}'",
+      "    return send_gmail",
+      "",
+    );
+  }
   if (keys.includes("netsuite")) {
     lines.push(
       "def make_netsuite_tool():",
