@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AgentNode,
   BlockType,
@@ -59,6 +59,27 @@ function loadSettings(): VibeSettings {
   }
 }
 
+// The canvas project (flow + name) is auto-saved to the browser so a refresh
+// never loses work, and can be saved/opened as a portable .json file.
+const PROJECT_KEY = "vab_project";
+
+interface SavedProject {
+  projectName: string;
+  state: FlowState;
+}
+
+function loadProject(): SavedProject | null {
+  try {
+    const raw = localStorage.getItem(PROJECT_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw) as SavedProject;
+    if (p && p.state && Array.isArray(p.state.nodes)) return p;
+  } catch {
+    /* ignore corrupt save */
+  }
+  return null;
+}
+
 function blankNode(type: BlockType): Node {
   const base = { id: newId(), x: 120, y: 120, label: "" };
   switch (type) {
@@ -80,13 +101,59 @@ function blankNode(type: BlockType): Node {
 }
 
 export default function App() {
-  const [state, setState] = useState<FlowState>(EMPTY_FLOW);
+  const _saved = loadProject();
+  const [state, setState] = useState<FlowState>(_saved?.state ?? EMPTY_FLOW);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [creds, setCreds] = useState<CredStore>(loadCreds());
   const [settings, setSettings] = useState<VibeSettings>(loadSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [projectName, setProjectName] = useState("my-crew");
+  const [projectName, setProjectName] = useState(_saved?.projectName ?? "my-crew");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [savedNote, setSavedNote] = useState(false);
+
+  // Auto-save the project to the browser on every change (debounced via effect).
+  useEffect(() => {
+    const t = setTimeout(() => {
+      localStorage.setItem(PROJECT_KEY, JSON.stringify({ projectName, state }));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [projectName, state]);
+
+  // Save to a portable .json file (and confirm the browser copy is current).
+  function saveProjectFile() {
+    localStorage.setItem(PROJECT_KEY, JSON.stringify({ projectName, state }));
+    const blob = new Blob([JSON.stringify({ projectName, state }, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const safe = projectName.trim().replace(/[^a-z0-9_-]+/gi, "-") || "project";
+    a.href = url;
+    a.download = `${safe}.vab.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setSavedNote(true);
+    setTimeout(() => setSavedNote(false), 1500);
+  }
+
+  // Open a previously saved .vab.json file back onto the canvas.
+  function openProjectFile(file: File) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const p = JSON.parse(String(reader.result)) as SavedProject;
+        if (!p?.state || !Array.isArray(p.state.nodes)) throw new Error("bad file");
+        setState(p.state);
+        setProjectName(p.projectName || "my-crew");
+        setSelectedId(null);
+        setSelectedEdgeId(null);
+      } catch {
+        alert("That doesn't look like a saved project (.vab.json).");
+      }
+    };
+    reader.readAsText(file);
+  }
 
   function saveSettings(s: VibeSettings) {
     setSettings(s);
@@ -407,6 +474,30 @@ export default function App() {
         >
           ⏰ {schedule ? humanSummary(schedule) : "Schedule"}
         </button>
+        <button
+          onClick={saveProjectFile}
+          disabled={state.nodes.length === 0}
+          title="Save the project to a file (and the browser). Auto-saves as you work."
+        >
+          {savedNote ? "✓ Saved" : "💾 Save"}
+        </button>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          title="Open a saved project (.vab.json)"
+        >
+          📂 Open
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json,application/json"
+          style={{ display: "none" }}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) openProjectFile(f);
+            e.target.value = "";
+          }}
+        />
         <button
           className="primary"
           onClick={() => exportProject(state, schedule, projectName)}
