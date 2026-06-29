@@ -5,6 +5,8 @@ crewai-tools>=0.14
 # Required for non-OpenAI models (Groq llama, Gemini, …): CrewAI's native
 # providers only cover real OpenAI model names, so anything else routes via litellm.
 litellm>=1.40
+# Enables CrewAI's native Gemini provider (model="gemini/...").
+google-genai>=1.0
 apscheduler>=3.10
 requests>=2.31
 python-dotenv>=1.0
