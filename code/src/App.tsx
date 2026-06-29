@@ -573,6 +573,7 @@ export default function App() {
               })
             }
             onDelete={() => deleteNode(selected.id)}
+            onClose={() => setSelectedId(null)}
           />
         )}
 

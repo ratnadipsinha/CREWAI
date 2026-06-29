@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Node } from "../types";
 import { TOOLS, TOOL_KEYS } from "../tools";
 
@@ -14,6 +15,7 @@ export function NodeCard({
   onEditCreds,
   onRedescribe,
   onDelete,
+  onClose,
 }: {
   node: Node;
   taskAgent?: string | null; // resolved from connectors (task only)
@@ -24,9 +26,39 @@ export function NodeCard({
   onEditCreds: () => void;
   onRedescribe: () => void;
   onDelete: () => void;
+  onClose: () => void;
 }) {
+  // Floating, draggable window — positioned over the canvas, not eating its width.
+  const [pos, setPos] = useState(() => ({
+    x: Math.max(20, window.innerWidth - 380),
+    y: 100,
+  }));
+
+  function startDrag(e: React.MouseEvent) {
+    e.preventDefault();
+    const sx = e.clientX, sy = e.clientY, ox = pos.x, oy = pos.y;
+    function mv(ev: MouseEvent) {
+      setPos({
+        x: Math.max(0, Math.min(window.innerWidth - 80, ox + ev.clientX - sx)),
+        y: Math.max(56, Math.min(window.innerHeight - 60, oy + ev.clientY - sy)),
+      });
+    }
+    function up() {
+      window.removeEventListener("mousemove", mv);
+      window.removeEventListener("mouseup", up);
+    }
+    window.addEventListener("mousemove", mv);
+    window.addEventListener("mouseup", up);
+  }
+
   return (
-    <aside className="card">
+    <aside className="card card-floating" style={{ left: pos.x, top: pos.y }}>
+      <div className="card-drag" onMouseDown={startDrag}>
+        <span className="card-drag-grip">⠿ Properties · {node.id}</span>
+        <button className="card-close" title="Close" onClick={onClose}>
+          ×
+        </button>
+      </div>
       <div className="card-head">
         <span className="card-id">{node.id}</span>
         <input
