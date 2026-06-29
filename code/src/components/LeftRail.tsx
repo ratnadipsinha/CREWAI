@@ -1,4 +1,5 @@
 import { BlockType, BLOCK_META } from "../types";
+import { BlockIcon } from "./Icons";
 
 const ORDER: BlockType[] = [
   "trigger",
@@ -37,7 +38,7 @@ export function LeftRail({
       {ORDER.map((t) => (
         <button key={t} className="rail-item" onClick={() => onAdd(t)}>
           <span className="rail-icon" style={{ background: BLOCK_META[t].color }}>
-            {BLOCK_META[t].icon}
+            <BlockIcon type={t} size={18} />
           </span>
           <span>{BLOCK_META[t].label}</span>
         </button>

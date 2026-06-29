@@ -1,21 +1,23 @@
 import { useRef, useState } from "react";
 import { BLOCK_META, EDGE_COLORS, FlowState, Node } from "../types";
+import { BlockIcon } from "./Icons";
 
-const NODE_W = 60;
-const NODE_H = 60;
+const NODE_W = 52;
+const NODE_H = 52;
 
-function center(node: Node) {
-  return { cx: node.x + NODE_W / 2, cy: node.y + NODE_H / 2 };
+function cx(node: Node) {
+  return node.x + NODE_W / 2;
 }
 
-function bezier(x1: number, y1: number, x2: number, y2: number): string {
-  const dy = Math.abs(y2 - y1) * 0.5 + 20;
-  return `M ${x1} ${y1} C ${x1} ${y1 + dy}, ${x2} ${y2 - dy}, ${x2} ${y2}`;
+// Orthogonal connector (down → across → down) — straight segments, never curved.
+function ortho(x1: number, y1: number, x2: number, y2: number): string {
+  const my = (y1 + y2) / 2;
+  return `M ${x1} ${y1} L ${x1} ${my} L ${x2} ${my} L ${x2} ${y2}`;
 }
 
 interface Pending {
   from: string;
-  x: number; // cursor position relative to canvas
+  x: number;
   y: number;
 }
 
@@ -47,18 +49,31 @@ export function Canvas({
 
   function toCanvas(clientX: number, clientY: number) {
     const r = canvasRef.current!.getBoundingClientRect();
-    return { x: clientX - r.left, y: clientY - r.top };
+    return {
+      x: clientX - r.left + canvasRef.current!.scrollLeft,
+      y: clientY - r.top + canvasRef.current!.scrollTop,
+    };
   }
 
-  // --- drag a node ---
+  // --- drag a node (with a small threshold so a click doesn't jitter it) ---
   function startDrag(e: React.MouseEvent, node: Node) {
     e.stopPropagation();
     const startX = e.clientX;
     const startY = e.clientY;
     const ox = node.x;
     const oy = node.y;
+    let moved = false;
     function move(ev: MouseEvent) {
-      onMove(node.id, ox + (ev.clientX - startX), oy + (ev.clientY - startY));
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      if (!moved && Math.abs(dx) + Math.abs(dy) < 3) return;
+      moved = true;
+      // light snap to the 11px grid
+      onMove(
+        node.id,
+        Math.round((ox + dx) / 11) * 11,
+        Math.round((oy + dy) / 11) * 11,
+      );
     }
     function up() {
       window.removeEventListener("mousemove", move);
@@ -68,7 +83,7 @@ export function Canvas({
     window.addEventListener("mouseup", up);
   }
 
-  // --- drag a NEW connection from either handle ---
+  // --- drag a NEW connection from a handle ---
   function startConnect(e: React.MouseEvent, node: Node) {
     e.stopPropagation();
     e.preventDefault();
@@ -81,7 +96,6 @@ export function Canvas({
     function up(ev: MouseEvent) {
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
-      // resolve the block under the cursor on release
       const el = document.elementFromPoint(ev.clientX, ev.clientY);
       const targetEl = el?.closest("[data-node-id]") as HTMLElement | null;
       const targetId = targetEl?.dataset.nodeId;
@@ -94,32 +108,50 @@ export function Canvas({
   }
 
   function dropConnect(target: Node) {
-    if (pending && pending.from !== target.id) {
-      onAddEdge(pending.from, target.id);
-    }
+    if (pending && pending.from !== target.id) onAddEdge(pending.from, target.id);
     setPending(null);
     setHover(null);
   }
 
+  const KINDS: { kind: keyof typeof EDGE_COLORS; color: string }[] = (
+    Object.keys(EDGE_COLORS) as (keyof typeof EDGE_COLORS)[]
+  ).map((k) => ({ kind: k, color: EDGE_COLORS[k] }));
+
   return (
-    <div
-      className="canvas"
-      ref={canvasRef}
-      onClick={() => onSelectEdge(null)}
-    >
+    <div className="canvas" ref={canvasRef} onClick={() => onSelectEdge(null)}>
       <svg className="wires">
-        {/* existing edges */}
+        <defs>
+          {KINDS.map(({ kind, color }) => (
+            <marker
+              key={kind}
+              id={`arr-${kind}`}
+              markerWidth="10"
+              markerHeight="10"
+              refX="7"
+              refY="3"
+              orient="auto"
+              markerUnits="strokeWidth"
+            >
+              <path d="M0,0 L6,3 L0,6 Z" fill={color} />
+            </marker>
+          ))}
+        </defs>
+
         {state.edges.map((e) => {
           const from = byId.get(e.from);
           const to = byId.get(e.to);
           if (!from || !to) return null;
-          const a = center(from);
-          const b = center(to);
-          const d = bezier(a.cx, from.y + NODE_H, b.cx, to.y);
+          const isTool = from.type === "tool" || to.type === "tool";
+          const color = EDGE_COLORS[e.kind];
           const selected = selectedEdgeId === e.id;
+
+          // Tool attachment: a straight dashed grey line, no arrowhead.
+          const d = isTool
+            ? `M ${cx(from)} ${from.y + NODE_H / 2} L ${cx(to)} ${to.y + NODE_H / 2}`
+            : ortho(cx(from), from.y + NODE_H, cx(to), to.y);
+
           return (
             <g key={e.id}>
-              {/* wide invisible hit area for easy clicking */}
               <path
                 d={d}
                 stroke="transparent"
@@ -133,26 +165,26 @@ export function Canvas({
               />
               <path
                 d={d}
-                stroke={EDGE_COLORS[e.kind]}
-                strokeWidth={selected ? 5 : 3}
+                stroke={isTool ? "#94a3b8" : color}
+                strokeWidth={selected ? 4 : 2.5}
                 fill="none"
-                strokeDasharray={selected ? "6 4" : undefined}
+                strokeLinejoin="round"
+                strokeDasharray={isTool ? "5 4" : selected ? "7 4" : undefined}
+                markerEnd={isTool ? undefined : `url(#arr-${e.kind})`}
                 style={{ pointerEvents: "none" }}
               />
             </g>
           );
         })}
 
-        {/* pending connection preview */}
         {pending &&
           (() => {
             const from = byId.get(pending.from)!;
-            const a = center(from);
             return (
               <path
-                d={bezier(a.cx, from.y + NODE_H, pending.x, pending.y)}
+                d={ortho(cx(from), from.y + NODE_H, pending.x, pending.y)}
                 stroke="#0ea5e9"
-                strokeWidth={3}
+                strokeWidth={2.5}
                 strokeDasharray="5 5"
                 fill="none"
               />
@@ -160,7 +192,7 @@ export function Canvas({
           })()}
       </svg>
 
-      {/* edge controls (cycle colour / delete) at midpoint of selected edge */}
+      {/* edge controls at midpoint of the selected edge */}
       {selectedEdgeId &&
         (() => {
           const e = state.edges.find((x) => x.id === selectedEdgeId);
@@ -168,7 +200,7 @@ export function Canvas({
           const from = byId.get(e.from);
           const to = byId.get(e.to);
           if (!from || !to) return null;
-          const mx = (center(from).cx + center(to).cx) / 2;
+          const mx = (cx(from) + cx(to)) / 2;
           const my = (from.y + NODE_H + to.y) / 2;
           return (
             <div
@@ -195,13 +227,12 @@ export function Canvas({
           );
         })()}
 
-      {/* nodes */}
+      {/* nodes — small icon tiles */}
       {state.nodes.map((n) => {
         const meta = BLOCK_META[n.type];
         const isTarget = !!pending && pending.from !== n.id && hover === n.id;
-        // task blocks show their short description; others show their label
-        const text =
-          n.type === "task" && n.description ? n.description : n.label;
+        const text = n.type === "task" && n.description ? n.description : n.label;
+        const toolKey = n.type === "tool" ? n.toolKey : undefined;
         return (
           <div
             key={n.id}
@@ -209,7 +240,13 @@ export function Canvas({
             className={`node ${selectedId === n.id ? "selected" : ""} ${
               isTarget ? "drop-target" : ""
             }`}
-            style={{ left: n.x, top: n.y, width: NODE_W, height: NODE_H }}
+            style={{
+              left: n.x,
+              top: n.y,
+              width: NODE_W,
+              height: NODE_H,
+              background: meta.color,
+            }}
             title={`${meta.label} ${n.id} — ${text}`}
             onMouseDown={(e) => startDrag(e, n)}
             onMouseUp={() => pending && dropConnect(n)}
@@ -221,11 +258,9 @@ export function Canvas({
               onSelectEdge(null);
             }}
           >
-            <span className="node-icon" style={{ background: meta.color }}>
-              {meta.icon}
-            </span>
+            <BlockIcon type={n.type} toolKey={toolKey} size={24} />
+            <span className="node-tip">{text || meta.label}</span>
 
-            {/* both handles can start a connection — drag from either to another block */}
             <span
               className="handle handle-in"
               title="Drag to connect"
